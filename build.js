@@ -1,0 +1,58 @@
+/* 构建脚本：合并编剧 agent 的卡组 → 注入 window.DRAMA_CARDS → 内联产出 dist/couple-drama.html */
+const fs = require('fs');
+const path = require('path');
+const root = __dirname;
+const read = p => fs.readFileSync(path.join(root, p), 'utf8');
+
+const SUIT_KEYS = ['gentle', 'fun', 'photo', 'road', 'home', 'rain', 'money', 'night'];
+const WHERE_KEYS = ['any', 'home', 'out', 'road'];
+
+/* 1) 合并两张内容 JSON */
+let injected = null;
+const files = ['docs/content/cards-travel.json', 'docs/content/cards-life.json'];
+if (files.every(f => fs.existsSync(path.join(root, f)))) {
+  const all = files.flatMap(f => JSON.parse(read(f)));
+  const ids = new Set();
+  const errors = [];
+  all.forEach(c => {
+    if (!c.id || ids.has(c.id)) errors.push('id 缺失/重复: ' + c.id);
+    ids.add(c.id);
+    if (!SUIT_KEYS.includes(c.suit)) errors.push(c.id + ' 花色非法: ' + c.suit);
+    if (!c.title || c.title.length > 14) errors.push(c.id + ' title 缺失或超长');
+    if (!c.text || c.text.length < 20 || c.text.length > 120) errors.push(c.id + ' text 长度非法');
+    if (![5, 15, 30, 60].includes(c.minutes)) errors.push(c.id + ' minutes 非法: ' + c.minutes);
+    if (!WHERE_KEYS.includes(c.where)) errors.push(c.id + ' where 非法: ' + c.where);
+  });
+  const perSuit = {};
+  all.forEach(c => perSuit[c.suit] = (perSuit[c.suit] || 0) + 1);
+  SUIT_KEYS.forEach(k => { if (perSuit[k] !== 12) errors.push(k + ' 只有 ' + (perSuit[k] || 0) + ' 张（应为 12）'); });
+  if (errors.length) { console.error('卡组校验失败:\n' + errors.join('\n')); process.exit(1); }
+  injected = all;
+  console.log('卡组合并: ' + all.length + ' 张 ｜ 各花色 12 张 ✅');
+} else {
+  console.log('⚠️ 内容 JSON 未就绪，使用内置 32 张兜底组');
+}
+
+/* 2) 内联（JSON 中 < 转义为 \u003c，防 HTML 解析器提前闭合 script） */
+let html = read('index.html');
+html = html.replace('<link rel="stylesheet" href="css/style.css">', '<style>\n' + read('css/style.css') + '\n</style>');
+
+const OPEN = '<' + 'script>';
+const CLOSE = '<' + '/script>';
+const injectScript = injected
+  ? 'window.DRAMA_CARDS = ' + JSON.stringify(injected).split('<').join('\\u003c') + ';\n'
+  : '';
+
+const scripts = [['js/data.js', injectScript], ['js/engine.js', ''], ['js/binding.js', ''], ['js/capsules.js', ''], ['js/github-sync.js', ''], ['js/app.js', '']];
+for (const pair of scripts) {
+  const file = pair[0], prefix = pair[1];
+  const tag = '<script src="' + file + '"></' + 'script>';
+  if (!html.includes(tag)) throw new Error('marker missing: ' + tag);
+  html = html.replace(tag, OPEN + '\n/* ===== ' + file + ' ===== */\n' + prefix + read(file) + '\n' + CLOSE);
+}
+if (html.includes('src="js/') || html.includes('href="css/')) throw new Error('unresolved external ref');
+
+fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
+const out = path.join(root, 'dist', 'couple-drama.html');
+fs.writeFileSync(out, html);
+console.log('BUILT:', out, (html.length / 1024).toFixed(1) + ' KB');

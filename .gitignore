@@ -1,0 +1,7 @@
+dist/
+node_modules/
+*.log
+.token-tmp
+.gh-token-test
+.syntax-probe.js
+.playwright-mcp/
