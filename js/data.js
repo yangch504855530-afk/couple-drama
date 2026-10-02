@@ -107,7 +107,6 @@
     { id: 'c100',     icon: '👑', name: '卷王之王', hint: '累计完成 100 张', check: s => s.doneCount >= 100 },
     { id: 'peace',    icon: '🕊️', name: '和平使者', hint: '一周零免战牌，且累计完成 5 场演出', check: s => s.freeLast7 === 0 && s.doneCount >= 5 },
     { id: 'allSuits', icon: '🎪', name: '全花色制霸', hint: '8 个花色各完成 1 张', check: s => Object.keys(SUITS).every(k => (s.suitDone[k] || 0) >= 1) },
-    { id: 'checkup',  icon: '🩺', name: '体检官', hint: '需求体检累计 30 次', check: s => s.needsTouches >= 30 },
     { id: 'bridge',   icon: '🪜', name: '修桥人', hint: '递出 10 次台阶且 7 次被接住', check: s => s.repairSent >= 10 && s.repairCaught >= 7 },
     { id: 'bank',     icon: '💛', name: '存款人', hint: '夸夸存折累计存入 20 句', check: s => s.praiseCount >= 20 },
   ];

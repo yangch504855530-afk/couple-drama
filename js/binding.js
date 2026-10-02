@@ -324,7 +324,7 @@
     const gs = window.GistSync;
     if (gs && gs.cfg().token && gs.cfg().auto && !gs._autoStarted) {
       gs._autoStarted = true;
-      gs.startAuto(30, () => renderInto('#binding-slot', profile));
+      gs.startAuto(30, () => renderInto('#binding-slot', null)); // v4.0 修复：原回调引用不存在的 profile 标识符，每 30 秒 ReferenceError 一次
     }
   }
   if (typeof module !== 'undefined' && module.exports) module.exports = global.DramaBinding;

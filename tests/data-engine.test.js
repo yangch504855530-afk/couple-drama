@@ -38,13 +38,13 @@ t('编剧卡组（若已合并）：96 张、8×12、无重复', () => {
     assert.ok(c.text.length >= 20 && c.text.length <= 120, c.id + ' text 长度');
   });
 });
-t('8 角色 / 6 需求（校园版）/ 14 成就，字段完整', () => {
+t('8 角色 / 6 需求（校园版）/ 13 成就，字段完整', () => {
   assert.equal(D.ROLES.length, 8);
   D.ROLES.forEach(r => assert.ok(r.duty && r.perk && r.name));
   assert.equal(D.NEEDS.length, 6);
   assert.equal(D.SMALL_THINGS.length, 50);
   D.NEEDS.forEach(n => assert.ok(n.low && n.charge));
-  assert.equal(D.ACHIEVEMENTS.length, 14);
+  assert.equal(D.ACHIEVEMENTS.length, 13); // v4.0 移除"体检官"（需求体检 UI 已下架，成就不可达）
   assert.equal(D.REPAIRS.length, 3);
   D.REPAIRS.forEach(r => assert.ok(r.text && r.icon));
 });
@@ -86,7 +86,7 @@ t('computeStreak 连击：今天断签不毁昨天，连续日正确累计', () 
 t('nextNeedLevel 循环 0→1→2→0', () => {
   assert.equal(E.nextNeedLevel(0), 1); assert.equal(E.nextNeedLevel(1), 2); assert.equal(E.nextNeedLevel(2), 0);
 });
-t('成就求值：首演/连击/全花色/和平使者/体检官', () => {
+t('成就求值：首演/连击/全花色/和平使者', () => {
   const suits = {};
   ['gentle', 'fun', 'photo', 'road', 'home', 'rain', 'money', 'night'].forEach(k => suits[k] = 1);
   const base = { doneCount: 1, streak: 0, suitDone: {}, freeLast7: 0, needsTouches: 0 };
@@ -98,12 +98,12 @@ t('成就求值：首演/连击/全花色/和平使者/体检官', () => {
   assert.ok(allS.includes('allSuits'));
   assert.ok(!E.evalAchievements(D.ACHIEVEMENTS, { doneCount: 9, streak: 0, suitDone: {}, freeLast7: 3, needsTouches: 0 }).includes('peace'));
   assert.ok(E.evalAchievements(D.ACHIEVEMENTS, { doneCount: 5, streak: 0, suitDone: {}, freeLast7: 0, needsTouches: 0 }).includes('peace'));
-  assert.ok(E.evalAchievements(D.ACHIEVEMENTS, { doneCount: 0, streak: 0, suitDone: {}, freeLast7: 0, needsTouches: 30 }).includes('checkup'));
 });
 
-t('关系气候：0 句雨天 / 1-4 多云 / ≥5 晴天（天气隐喻不打分）', () => {
-  assert.equal(E.climate(0).icon, '🌤️'); // v1.2b：新用户中性天气，不贴负面标签
-  assert.equal(E.climate(2).icon, '⛅');
+t('关系气候：0 待记录 / 1-2 雨天 / 3-4 转晴中 / ≥5 晴天（v4.0 修复原雨天分支永不可达）', () => {
+  assert.equal(E.climate(0).icon, '🌤️');
+  assert.equal(E.climate(2).icon, '🌧️');
+  assert.equal(E.climate(3).icon, '⛅');
   assert.equal(E.climate(5).icon, '☀️');
 });
 t('成就 v2：修桥人（10 递 7 接）与存款人（20 句）', () => {

@@ -1,6 +1,5 @@
-/* 《双人戏精》时间胶囊模块 v3.0
- * 裁决版设计：全文仅存本机（隐私），元数据（有信+解锁日）经 GistSync.syncState 上云让对方可见倒计时。
- * 浏览器挂 window.DramaCapsules = { render, bind }，由 app.js 在 renderToday 后调用。
+/* 《双人戏精》时间胶囊模块 v4.0 同框版
+ * 裁决：全文仅存本机（隐私），无任何上云。浏览器挂 window.DramaCapsules = { render, list }。
  */
 (function (global) {
   'use strict';
@@ -10,6 +9,7 @@
   const jset = (k, v) => LS(k, JSON.stringify(v));
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const uuid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
   function list() { return jget('cd.capsules', []); }
   function save(list2) { jset('cd.capsules', list2); }
@@ -33,7 +33,7 @@
     const t = today();
     const rows = caps.map(c => {
       const dd = daysUntil(c.unlock);
-      const toName = c.to === 'you' ? p.you : p.her;
+      const toName = c.to === 'you' ? p.you : (c.to === 'us' ? '未来的我们' : p.her);
       if (c.opened && dd <= 0) {
         return '<div class="cap opened">🔓 <b>' + esc(c.text) + '</b><div class="cap-meta">' + esc(c.created) + ' 封存 · 已拆</div></div>';
       }
@@ -61,9 +61,8 @@
       const ud = new Date(); ud.setDate(ud.getDate() + days);
       const unlock = ud.getFullYear() + '-' + String(ud.getMonth() + 1).padStart(2, '0') + '-' + String(ud.getDate()).padStart(2, '0');
       const caps = list();
-      caps.push({ id: global.DramaBinding ? global.DramaBinding.uuid() : String(Date.now()), text: text.slice(0, 500), unlock, created: today(), to: (document.getElementById('cap-to') || {}).value || 'her', opened: false });
+      caps.push({ id: uuid(), text: text.slice(0, 500), unlock, created: today(), to: (document.getElementById('cap-to') || {}).value || 'her', opened: false });
       save(caps);
-      if (window.GistSync) window.GistSync.syncState().catch(() => {});
       toastMsg('🔒 已封存，' + days + ' 天后可拆。到时候见。');
       render(selector, profile);
     });

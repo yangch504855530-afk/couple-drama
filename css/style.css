@@ -56,6 +56,7 @@ section.view.active { display: block; }
 .btn { border: none; background: linear-gradient(135deg, #e8b04b, #d96c3f); color: #241a42; font-weight: 800;
   font-size: 16px; border-radius: 14px; padding: 12px 26px; cursor: pointer; }
 .btn.big { width: 100%; }
+.btn:disabled { opacity: .35; cursor: not-allowed; filter: grayscale(.6); }
 
 /* 卡池 */
 .draw-bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
@@ -182,3 +183,20 @@ footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px
   border-radius: 12px; padding: 10px 14px; font-size: 14px; margin: 8px 0; }
 
 .charge-remote { display: block; font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+
+/* v4.0 同框版 */
+.restbox { border: 1px dashed var(--teal); color: #b8fff5; border-radius: 12px; padding: 10px 14px;
+  font-size: 13.5px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ladder-tip { border-color: var(--gold); background: rgba(232,176,75,.08); }
+.ladder-tip a { color: var(--gold); }
+.report-img { width: 100%; max-width: 420px; display: block; margin: 10px auto; border-radius: 14px;
+  border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+.dl-btn { text-decoration: none; display: inline-block; font-size: 14px; padding: 9px 20px; }
+.cap { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 8px 0; background: var(--bg2); font-size: 13.5px; }
+.cap.locked { border-color: rgba(91,143,185,.6); }
+.cap.ready { border-color: var(--teal); }
+.cap.opened { opacity: .7; }
+.cap-meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+.warnbox { font-size: 12.5px; color: #ffd9a0; background: rgba(224,85,85,.1); border: 1px dashed rgba(224,85,85,.45);
+  border-radius: 10px; padding: 8px 12px; margin: 8px 0; }
+.free-btn:disabled { cursor: not-allowed; }

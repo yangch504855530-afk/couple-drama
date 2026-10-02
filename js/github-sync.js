@@ -62,18 +62,19 @@
     if (m.capsules) jset('cd.capsules', m.capsules);
   }
   function mergeFull(mine, theirs) {
+    /* v4.0 修复去重键：原实现对 things（纯数字数组）用 [x.id,x.date] 键 → 全部塌缩为 [null,null] 只剩 1 条；
+     * repair 无 id 字段 → 同天多条只剩第一条；log 键含可变 note → 编辑感想后同场演出记两条虚增连击。 */
+    const KEYS = { things: x => JSON.stringify(x), repair: x => JSON.stringify([x.ts, x.type]),
+      praise: x => JSON.stringify([x.ts, x.from, x.to, x.text]), log: x => JSON.stringify([x.ts, x.cardId]),
+      capsules: x => JSON.stringify([x.id, x.unlock]) };
     const out = {};
-    ['things', 'repair'].forEach(k => {
+    Object.keys(KEYS).forEach(k => {
       const map = new Map();
-      ((mine[k] || []).concat(theirs[k] || [])).forEach(x => { const key = JSON.stringify([x.id, x.date]); if (!map.has(key)) map.set(key, x); });
+      ((mine[k] || []).concat(theirs[k] || [])).forEach(x => { const key = KEYS[k](x); if (!map.has(key)) map.set(key, x); });
       out[k] = Array.from(map.values());
     });
-      ['praise', 'log', 'capsules'].forEach(k => {
-        const map = new Map();
-        ((mine[k] || []).concat(theirs[k] || [])).forEach(x => { const key = JSON.stringify([x.ts, x.text || x.note || '']); if (!map.has(key)) map.set(key, x); });
-        out[k] = Array.from(map.values());
-      });
-      return out;
+    out.things = (out.things || []).slice().sort((a, b) => a - b); // things 是下标数组，排序稳定展示
+    return out;
   }
 
   /* 拉取并合并：把云端房间里本房间的事件合并进本地（幂等）。
@@ -92,13 +93,13 @@
     return { added, data };
   }
 
-  /* 推送：读-改-写（先拉远端，合并本房间事件，再 PATCH 全量），降低双人并发覆盖风险 */
+  /* 推送：读-改-写（先拉远端，合并本房间事件，再 PATCH 全量），降低双人并发覆盖风险。
+   * v4.0 修复：原实现读失败时以空对象为基底继续写，会用空世界覆盖整个 Gist（其他房间/双方数据全毁）——读失败必须中止。 */
   async function push() {
     const B = global.DramaBinding;
     const st = B.getState();
     if (!st) return null;
-    let data = null;
-    try { data = await fetchGist(); } catch (e) { data = { version: 1, rooms: {} }; }
+    const data = await fetchGist(); // 读失败直接抛出，绝不用空对象覆盖云端
     const local = st.events || [];
     const remote = (data.rooms && data.rooms[st.room] && data.rooms[st.room].events) || [];
     const union = B.mergeEvents(remote, local);
@@ -156,8 +157,8 @@
     st.events = mergedEvents; B.saveEvents(mergedEvents);
     room.events = mergedEvents;
     applyMerged(unionMine);
-    const c = cfg(); c.lastSync = new Date().toLocaleString(); setCfg(c);
     await patchGist(data);
+    const c = cfg(); c.lastSync = new Date().toLocaleString(); setCfg(c); // v4.0 修复：PATCH 成功后才写 lastSync，失败不再伪装成功
     if (added > 0 && typeof onMerged === 'function') onMerged(added);
     return { added, events: mergedEvents.length };
   }

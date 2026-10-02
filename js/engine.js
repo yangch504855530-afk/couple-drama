@@ -135,12 +135,13 @@
     return { card: c, boosted: false, suit: c.suit };
   }
 
-  // 关系气候：只看积极存款，不打分（Gottman 5:1 的天气化隐喻）
+  // 关系气候：只看积极存款，不打分（Gottman 5:1 的天气化隐喻）。v4.0 修复原"雨天分支永不可达"的区间漏洞
   function climate(weeklyPraise) {
-    if (weeklyPraise >= 5) return { icon: '☀️', text: '晴天' };
-    if (weeklyPraise === 0) return { icon: '🌤️', text: '待记录' };
-    if (weeklyPraise >= 1) return { icon: '⛅', text: '转晴中（再存 ' + (5 - weeklyPraise) + ' 句放晴）' };
-    return { icon: '🌧️', text: '雨天' };
+    const n = weeklyPraise || 0;
+    if (n === 0) return { icon: '🌤️', text: '待记录' };
+    if (n >= 5) return { icon: '☀️', text: '晴天' };
+    if (n >= 3) return { icon: '⛅', text: '转晴中（再存 ' + (5 - n) + ' 句放晴）' };
+    return { icon: '🌧️', text: '雨天（存一句，就晴一点）' };
   }
 
   global.DramaEngine = { hashDate, mulberry32, pickDaily, drawFromSuit, computeStreak, computeCadenceStreak, daysUntilDue, daysTogether, nextNeedLevel, evalAchievements, climate, pickWithNeedBoost, FREE_PER_DAY };

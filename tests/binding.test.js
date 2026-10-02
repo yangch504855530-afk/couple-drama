@@ -24,8 +24,8 @@ t('加入：邀请码内事件保留，旧房间事件不带出（防跨房污�
   const st = B.getState();
   assert.equal(st.myName, '陈皮');
   // 新设计：加入=干净开始，事件以邀请码为准（不含本机旧房间的 miss）
-  assert.ok(!st.events.some(e => e.type === 'miss' && e.byName === '阿柚' && !st.events.every(x => true)),
-    '旧房间事件不应带入');
+  // v4.0 修复：原断言含 `!st.events.every(x => true)` 恒真项，实际什么都没验证——改为真断言
+  assert.ok(!st.events.some(e => e.byName === '阿柚'), '旧房间事件不应带入');
 });
 t('emit/importSync：合并幂等（重复导入不重复计）', () => {
   B.emit('need', { text: '今天想被夸' });
