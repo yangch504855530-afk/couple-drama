@@ -99,7 +99,7 @@
 
     const root = $('#view-today');
     root.innerHTML = `
-      ${pending ? `<div class="card ladder-tip"><b>🪜 有一个台阶等着被接</b>——有人递了台阶，还没人接。去 <a href="#" id="tip-ladder">台阶页</a> 看看。</div>` : ''}
+      ${pending ? `<div class="card ladder-tip"><b>🪜 有一个台阶待回应</b>——去 <a href="#" id="tip-ladder">台阶页</a> 看看或回应。</div>` : ''}
 
       <div class="love-days card">
         <div class="ld-num">${st.daysTogether === null
@@ -322,15 +322,17 @@
       累计递出 <b>${st.repairSent}</b> 次 · 被接住 <b>${st.repairCaught}</b> 次。</div>
       ${pending ? `
       <div class="card">
-        <h3>🪜 有一个台阶递给你</h3>
+        <h3>🪜 台阶已递出，等 TA 回应</h3>
         <div class="repair-pending">
           <p class="rp-text">${pending.icon} <b>${esc(pending.text)}</b></p>
-          <div class="rp-btns">
-            <button class="btn rp-catch" id="rp-catch">💛 接住</button>
-            <button class="mini" id="rp-later">晚点说</button>
-          </div>
+          <p class="hint" style="border:none;margin:4px 0 0">把手机给 TA、喊 TA 来看，或发台阶卡。</p>
         </div>
-        <p class="hint">「晚点说」也是一种回答——不伤人的拒绝方式。TA 不在旁边？生成台阶卡发给 TA，TA 回应后在这台手机上代 TA 标记就行。</p>
+        <p class="hint">下面记录 <b>TA 的回应</b>——TA 本人亲手点，或持机人代 TA 点（这是你们的日记，不是考勤）：</p>
+        <div class="rp-btns">
+          <button class="btn rp-catch" id="rp-catch">💛 TA 接住了</button>
+          <button class="mini" id="rp-later">⏳ TA 晚点说</button>
+        </div>
+        <p class="hint">「晚点说」也是一种回答——不伤人的拒绝方式，记录下来就好，不追问。</p>
         <div class="draw-bar" style="justify-content:center"><button class="mini" id="step-card">📸 生成台阶卡（发给 TA）</button></div>
         <div id="stepcard-slot"></div>
       </div>` : `
