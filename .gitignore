@@ -5,3 +5,4 @@ node_modules/
 .gh-token-test
 .syntax-probe.js
 .playwright-mcp/
+.wrangler/
