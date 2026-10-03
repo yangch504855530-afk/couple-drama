@@ -41,6 +41,7 @@
   async function createRoom(apiBase) {
     const st = state() || { me: uuid(), lastPull: 0 };
     st.api = ((apiBase || DEFAULT_API) || '').replace(/\/+$/, '');
+    saveState(st); // 先落盘:api() 依赖 state().api 拼 base URL(v4.2 修复 501:未先保存导致请求打到本机静态服务器)
     const res = await api('/room', { method: 'POST', body: '{}' });
     st.code = res.code; st.roomKey = res.roomKey;
     saveState(st);
@@ -50,7 +51,8 @@
   /* 加入房间:6 位码换 roomKey */
   async function joinRoom(apiBase, code) {
     const st = state() || { me: uuid(), lastPull: 0 };
-    st.api = (apiBase || '').replace(/\/+$/, '');
+    st.api = ((apiBase || DEFAULT_API) || '').replace(/\/+$/, '');
+    saveState(st); // 同上
     const res = await api('/room/join', { method: 'POST', body: JSON.stringify({ code: String(code || '').trim() }) });
     st.code = String(code).trim().toUpperCase(); st.roomKey = res.roomKey;
     saveState(st);
