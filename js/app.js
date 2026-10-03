@@ -318,7 +318,7 @@
     const root = $('#view-ladder');
     root.innerHTML = `
       <h2 class="vt">🪜 台阶 <span class="count">大道理都懂，缺的是下得来的台阶</span></h2>
-      <div class="rulebox">递出去，把手机递给 TA，由 TA 决定接不接——<b>接不接都不追问，这是规则</b>。<br>
+      <div class="rulebox">递出去，把手机给 TA、喊 TA 来看，或生成台阶卡发给 TA——由 TA 决定接不接，<b>接不接都不追问，这是规则</b>。<br>
       累计递出 <b>${st.repairSent}</b> 次 · 被接住 <b>${st.repairCaught}</b> 次。</div>
       ${pending ? `
       <div class="card">
@@ -330,21 +330,23 @@
             <button class="mini" id="rp-later">晚点说</button>
           </div>
         </div>
-        <p class="hint">「晚点说」也是一种回答——不伤人的拒绝方式。</p>
+        <p class="hint">「晚点说」也是一种回答——不伤人的拒绝方式。TA 不在旁边？生成台阶卡发给 TA，TA 回应后在这台手机上代 TA 标记就行。</p>
+        <div class="draw-bar" style="justify-content:center"><button class="mini" id="step-card">📸 生成台阶卡（发给 TA）</button></div>
+        <div id="stepcard-slot"></div>
       </div>` : `
       <div class="card">
         <h3>递一个台阶</h3>
-        <p class="hint">最难的第一句话，交给我们来说。点一个，然后把手机递给 TA。</p>
+        <p class="hint">最难的第一句话，交给我们来说。点一个，然后把手机给 TA，或把台阶卡发给 TA。</p>
         <div class="draw-bar">${D.REPAIRS.map(r =>
           `<button class="suit-btn rp-send" data-rp="${r.id}">${r.icon} ${r.text}</button>`).join('')}</div>
       </div>`}`;
     document.querySelectorAll('.rp-send').forEach(b => b.addEventListener('click', () => {
       const rp = D.REPAIRS.find(x => x.id === b.dataset.rp);
-      if (!confirm('把「' + rp.text + '」递出去？递出后把手机交给 TA，接不接都不追问。')) return;
+      if (!confirm('把「' + rp.text + '」递出去？递出后把手机给 TA、喊 TA 来看，或生成台阶卡发给 TA——接不接都不追问。')) return;
       const arr = jget('cd.repair', []);
       arr.push({ ts: Date.now(), date: today(), type: rp.id, icon: rp.icon, text: rp.text, caught: null });
       jset('cd.repair', arr);
-      toast('🪜 台阶已递出——现在，把手机递给 TA。');
+      toast('🪜 台阶已递出——把手机给 TA，或生成台阶卡发给 TA。');
       renderLadder();
     }));
     const rc = $('#rp-catch'); if (rc) rc.addEventListener('click', () => {
@@ -361,6 +363,36 @@
       if (pr) { pr.caught = false; jset('cd.repair', arr); }
       toast('⏳ 好的，晚点说——不追问。'); renderLadder();
     });
+    const sc = $('#step-card'); if (sc) sc.addEventListener('click', makeStepCard);
+  }
+
+  /* ---------- 🪜 台阶卡（v4.1：给"拉不下脸走不到面前"的场景——生成图片微信直发，零后端） ---------- */
+  function makeStepCard() {
+    const pending = jget('cd.repair', []).find(x => x.date === today() && x.caught === null);
+    if (!pending) { toast('没有待接的台阶。', true); return; }
+    const cv = document.createElement('canvas'); cv.width = 750; cv.height = 1000;
+    const ctx = cv.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, 1000);
+    g.addColorStop(0, '#2a1c4d'); g.addColorStop(1, '#17102a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 750, 1000);
+    ctx.strokeStyle = 'rgba(232,176,75,.5)'; ctx.lineWidth = 2; ctx.strokeRect(24, 24, 702, 952);
+    const center = (t, y, font, color) => { ctx.font = font; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(t, 375, y); };
+    center('🪜 一个台阶', 140, 'bold 44px "Microsoft YaHei", sans-serif', '#e8b04b');
+    center(today(), 190, '22px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    center(pending.icon, 380, '120px "Microsoft YaHei", sans-serif', '#f2ecff');
+    center('「' + pending.text + '」', 500, 'bold 54px "Microsoft YaHei", sans-serif', '#f2ecff');
+    center('有人想和好，又拉不下脸——', 600, '26px "Microsoft YaHei", sans-serif', '#d8cfef');
+    center('这是 TA 递给你的台阶。', 644, '26px "Microsoft YaHei", sans-serif', '#d8cfef');
+    center('接不接，都不追问。', 730, 'bold 30px "Microsoft YaHei", sans-serif', '#ffd9a0');
+    center('接住它，或者晚点说，都可以。', 776, '24px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    center('双人戏精 · 一台手机的小剧场', 930, '20px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    const url = cv.toDataURL('image/png');
+    const slot = $('#stepcard-slot'); if (!slot) return;
+    slot.innerHTML = `<img class="report-img" alt="台阶卡" src="${url}">
+      <p class="hint">把这张图发给 TA（微信直接发）——台阶就递到了。TA 回应后，在这台手机上代 TA 标记结果。</p>
+      <div class="draw-bar" style="justify-content:center"><a class="btn dl-btn" download="台阶卡-${today()}.png" href="${url}">⬇️ 保存台阶卡</a></div>`;
+    slot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    toast('🪜 台阶卡生成好了——发给 TA，台阶就递到了。');
   }
 
   /* ---------- 🎁 百宝箱 ---------- */
