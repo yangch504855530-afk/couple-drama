@@ -96,10 +96,11 @@
         : '🌙 距下一场还有 <b>' + due + '</b> 天（' + esc(CADENCE_LABEL[cadence()]) + '）；想提前演也随你。';
     })();
     const lastDrawn = (d.drawn && d.drawn.length) ? D.CARDS.find(c => c.id === d.drawn[d.drawn.length - 1]) : null;
+    const remotePendings = jget('cd.remoteRepair', []).filter(x => x.date === today() && x.acked === null); // v4.2 远端台阶
 
     const root = $('#view-today');
     root.innerHTML = `
-      ${pending ? `<div class="card ladder-tip"><b>🪜 有一个台阶待回应</b>——去 <a href="#" id="tip-ladder">台阶页</a> 看看或回应。</div>` : ''}
+      ${pending || remotePendings.length ? `<div class="card ladder-tip"><b>🪜 有台阶待回应</b>——去 <a href="#" id="tip-ladder">台阶页</a> 看看或回应。</div>` : ''}
 
       <div class="love-days card">
         <div class="ld-num">${st.daysTogether === null
@@ -312,20 +313,62 @@
   }
 
   /* ---------- 🪜 台阶 ---------- */
+  /* 远端事件(云中继 v4.2):TA 递来的台阶 → 真待接卡;TA 的接住 → 回流本地统计 */
+  function handleRemoteEvents(remote) {
+    let changed = false;
+    const my = jget('cd.repair', []);
+    remote.forEach(e => {
+      if (e.type === 'repair') {
+        const arr = jget('cd.remoteRepair', []);
+        if (!arr.some(x => x.id === e.id)) {
+          arr.push({ id: e.id, ts: e.ts, date: e.date || today(), text: e.payload.text, icon: e.payload.icon, by: e.by, acked: null });
+          jset('cd.remoteRepair', arr);
+          changed = true;
+          toast('🪜 有一个台阶递来了：<b>' + esc(e.payload.icon + ' ' + e.payload.text) + '</b>——去台阶页回应。');
+        }
+      } else if (e.type === 'repair_ack') {
+        const ref = e.payload && e.payload.ref;
+        const target = my.find(x => x.bid === ref && x.caught === null);
+        if (target) {
+          target.caught = true; target.caughtTs = Date.now(); jset('cd.repair', my);
+          changed = true;
+          toast('💛 台阶被接住了——TA 回应了你。这一下比一百句道理都值钱。');
+        }
+      }
+    });
+    if (changed) { checkAchievements(); renderLadder(); }
+  }
+
   function renderLadder() {
     const p = profile(), st = deriveState();
     const pending = jget('cd.repair', []).find(x => x.date === today() && x.caught === null);
+    const remotePendings = jget('cd.remoteRepair', []).filter(x => x.date === today() && x.acked === null);
+    const bound = !!(window.CloudSync && window.CloudSync.isBound());
     const root = $('#view-ladder');
     root.innerHTML = `
       <h2 class="vt">🪜 台阶 <span class="count">大道理都懂，缺的是下得来的台阶</span></h2>
-      <div class="rulebox">递出去，把手机给 TA、喊 TA 来看，或生成台阶卡发给 TA——由 TA 决定接不接，<b>接不接都不追问，这是规则</b>。<br>
+      <div class="rulebox">递出去——把手机给 TA、喊 TA 来看、生成台阶卡，或${bound ? '（已绑定）直接递到 TA 手机上' : '（绑定后）直接递到 TA 手机上'}。<b>接不接都不追问，这是规则</b>。<br>
       累计递出 <b>${st.repairSent}</b> 次 · 被接住 <b>${st.repairCaught}</b> 次。</div>
+
+      ${remotePendings.map(rp => `
+      <div class="card">
+        <h3>🪜 TA 递给你一个台阶</h3>
+        <div class="repair-pending">
+          <p class="rp-text">${esc(rp.icon)} <b>${esc(rp.text)}</b></p>
+          <div class="rp-btns">
+            <button class="btn rp-remote-catch" data-id="${esc(rp.id)}">💛 接住</button>
+            <button class="mini rp-remote-later" data-id="${esc(rp.id)}">⏳ 晚点说</button>
+          </div>
+        </div>
+        <p class="hint">「晚点说」也是一种回答——不伤人的拒绝方式。</p>
+      </div>`).join('')}
+
       ${pending ? `
       <div class="card">
         <h3>🪜 台阶已递出，等 TA 回应</h3>
         <div class="repair-pending">
           <p class="rp-text">${pending.icon} <b>${esc(pending.text)}</b></p>
-          <p class="hint" style="border:none;margin:4px 0 0">把手机给 TA、喊 TA 来看，或发台阶卡。</p>
+          <p class="hint" style="border:none;margin:4px 0 0">把手机给 TA、喊 TA 来看，或发台阶卡${bound ? '——已绑定，TA 手机上会直接出现' : ''}。</p>
         </div>
         <p class="hint">下面记录 <b>TA 的回应</b>——TA 本人亲手点，或持机人代 TA 点（这是你们的日记，不是考勤）：</p>
         <div class="rp-btns">
@@ -338,23 +381,40 @@
       </div>` : `
       <div class="card">
         <h3>递一个台阶</h3>
-        <p class="hint">最难的第一句话，交给我们来说。点一个，然后把手机给 TA，或把台阶卡发给 TA。</p>
+        <p class="hint">最难的第一句话，交给我们来说。点一个——绑定后直接到 TA 手机，没绑定就递手机或发台阶卡。</p>
         <div class="draw-bar">${D.REPAIRS.map(r =>
           `<button class="suit-btn rp-send" data-rp="${r.id}">${r.icon} ${r.text}</button>`).join('')}</div>
       </div>`}`;
     document.querySelectorAll('.rp-send').forEach(b => b.addEventListener('click', () => {
       const rp = D.REPAIRS.find(x => x.id === b.dataset.rp);
-      if (!confirm('把「' + rp.text + '」递出去？递出后把手机给 TA、喊 TA 来看，或生成台阶卡发给 TA——接不接都不追问。')) return;
+      if (!confirm('把「' + rp.text + '」递出去？接不接都不追问。')) return;
       const arr = jget('cd.repair', []);
-      arr.push({ ts: Date.now(), date: today(), type: rp.id, icon: rp.icon, text: rp.text, caught: null });
+      const bev = (window.CloudSync && window.CloudSync.isBound()) ? window.CloudSync.emit('repair', { text: rp.text, icon: rp.icon }) : null;
+      arr.push({ ts: Date.now(), date: today(), type: rp.id, icon: rp.icon, text: rp.text, caught: null, bid: bev ? bev.id : null });
       jset('cd.repair', arr);
-      toast('🪜 台阶已递出——把手机给 TA，或生成台阶卡发给 TA。');
+      toast('🪜 台阶已递出' + (bev ? '——TA 手机上马上会看到。' : '——把手机给 TA，或生成台阶卡发给 TA。'));
+      renderLadder();
+    }));
+    document.querySelectorAll('.rp-remote-catch').forEach(b => b.addEventListener('click', () => {
+      const arr = jget('cd.remoteRepair', []);
+      const rp = arr.find(x => x.id === b.dataset.id);
+      if (!rp) return;
+      rp.acked = true; jset('cd.remoteRepair', arr);
+      if (window.CloudSync && window.CloudSync.isBound()) window.CloudSync.emit('repair_ack', { ref: rp.id });
+      toast('💛 接住了。这一下比一百句道理都值钱。');
+      renderLadder();
+    }));
+    document.querySelectorAll('.rp-remote-later').forEach(b => b.addEventListener('click', () => {
+      const arr = jget('cd.remoteRepair', []);
+      const rp = arr.find(x => x.id === b.dataset.id);
+      if (rp) { rp.acked = false; jset('cd.remoteRepair', arr); }
+      toast('⏳ 好的，晚点说——不追问。');
       renderLadder();
     }));
     const rc = $('#rp-catch'); if (rc) rc.addEventListener('click', () => {
       const arr = jget('cd.repair', []);
       const pr = arr.find(x => x.date === today() && x.caught === null);
-      if (!pr) { toast('今天没有待接的台阶。', true); return; }
+      if (!pr) { toast('今天没有待回应的台阶。', true); return; }
       pr.caught = true; pr.caughtTs = Date.now(); jset('cd.repair', arr);
       toast('💛 台阶被接住了。这一下比一百句道理都值钱。');
       checkAchievements(); renderLadder();
@@ -406,12 +466,14 @@
       <div id="cap-slot"></div>
       <div id="pool-slot"></div>
       <div id="log-slot"></div>
+      <div id="cloud-slot"></div>
       <div id="set-slot"></div>`;
     renderStreak();
     renderThings();
     if (window.DramaCapsules) window.DramaCapsules.render('#cap-slot', profile());
     renderPool();
     renderLog();
+    renderCloudCard();
     renderSettings();
   }
 
@@ -551,6 +613,63 @@
     });
   }
 
+  /* 🔗 双人同步(云中继 v4.2):零注册房间码,首版仅台阶闭环 */
+  function renderCloudCard() {
+    const slot = $('#cloud-slot'); if (!slot) return;
+    if (!window.CloudSync) { slot.innerHTML = ''; return; }
+    const C = window.CloudSync;
+    if (C.isBound()) {
+      const st = C.state();
+      slot.innerHTML = `
+        <div class="card">
+        <h3>🔗 双人同步 <span class="count">已连接</span></h3>
+        <p class="hint">房间码 <b>${esc(st.code)}</b> ｜ 你递的台阶直接出现在 TA 手机上，TA 接住会自动记回你的统计。日志、免战牌、电量<b>永不同步</b>（情绪私有红线）。</p>
+        <div class="draw-bar"><button class="mini danger" id="cloud-unbind">解除连接</button></div>
+        </div>`;
+      $('#cloud-unbind').addEventListener('click', () => {
+        if (!confirm('解除与 TA 的连接？TA 将不再收到你的台阶（云端房间自动废弃，码不重用）。')) return;
+        C.unbind(); C.stopAuto();
+        toast('🔗 已解除连接。');
+        renderCloudCard(); renderLadder();
+      });
+      return;
+    }
+    slot.innerHTML = `
+      <div class="card">
+      <h3>🔗 双人同步 <span class="count">台阶真正递到 TA 手机上</span></h3>
+      ${C.defaultApi() ? `
+      <p class="hint">零注册：创建小剧场拿到 6 位码，微信发给 TA——TA 在自己手机上输入，你们就连上了。此后台阶双向直达（TA 亲手接住，你的统计自动 +1）。不需要任何账号。</p>
+      <div class="draw-bar">
+        <button class="suit-btn" id="cloud-create">🎬 创建小剧场</button>
+        <input id="cloud-code" maxlength="6" placeholder="我有房间码" style="width:110px;text-transform:uppercase;background:var(--bg2);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:7px 10px;font-size:13.5px">
+        <button class="suit-btn" id="cloud-join">加入</button>
+      </div>
+      <div id="cloud-msg"></div>` : `
+      <p class="hint">🚧 同步服务即将开放——部署完成后这里就能创建小剧场。</p>`}
+      </div>`;
+    if (!C.defaultApi()) return;
+    $('#cloud-create').addEventListener('click', async () => {
+      try {
+        const st = await C.createRoom();
+        C.startAuto(30, handleRemoteEvents);
+        $('#cloud-msg').innerHTML = '<p class="hint gold">✅ 房间码：<b>' + esc(st.code) + '</b>——微信发给 TA，让 TA 在自己手机上「加入」。</p>';
+        renderLadder();
+      } catch (e) { $('#cloud-msg').innerHTML = '<p class="hint">❌ ' + esc(e.message) + '</p>'; }
+    });
+    $('#cloud-join').addEventListener('click', async () => {
+      const code = ($('#cloud-code').value || '').trim();
+      if (!code) { $('#cloud-msg').innerHTML = '<p class="hint">❌ 先填 TA 发你的 6 位房间码。</p>'; return; }
+      try {
+        await C.joinRoom(null, code);
+        C.startAuto(30, handleRemoteEvents);
+        toast('🔗 已连上 TA——台阶从此直达。');
+        renderCloudCard(); renderLadder();
+      } catch (e) { $('#cloud-msg').innerHTML = '<p class="hint">❌ ' + esc(e.message) + '</p>'; }
+    });
+  }
+
+  /* 🔗 双人同步(云中继 v4.2) 结束 */
+
   /* 设置（名字/纪念日/节拍/清空） */
   function renderSettings() {
     const p = profile();
@@ -619,6 +738,7 @@
       try { RENDERERS[name](); } catch (e) { console.error(e); toast('⚠️ ' + name + ' 页渲染出错：' + esc(e.message), true); }
     });
     try { checkAchievements(); } catch (e) { console.error(e); }
+    if (window.CloudSync && window.CloudSync.isBound()) window.CloudSync.startAuto(30, handleRemoteEvents); // v4.2 绑定后自动拉远端台阶
     switchTab('today');
   });
 })();

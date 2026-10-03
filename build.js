@@ -43,7 +43,7 @@ const injectScript = injected
   ? 'window.DRAMA_CARDS = ' + JSON.stringify(injected).split('<').join('\\u003c') + ';\n'
   : '';
 
-const scripts = [['js/data.js', injectScript], ['js/engine.js', ''], ['js/capsules.js', ''], ['js/app.js', '']]; // v4.0：binding.js/github-sync.js 已下架不加载
+const scripts = [['js/data.js', injectScript], ['js/engine.js', ''], ['js/capsules.js', ''], ['js/cloud-sync.js', ''], ['js/app.js', '']]; // v4.2:cloud-sync(云中继)上架;binding/github-sync 仍下架
 for (const pair of scripts) {
   const file = pair[0], prefix = pair[1];
   const tag = '<script src="' + file + '"></' + 'script>';

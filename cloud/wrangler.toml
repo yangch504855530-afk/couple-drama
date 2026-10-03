@@ -1,0 +1,11 @@
+name = "drama-relay"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "drama-relay-db"
+database_id = "TO_BE_FILLED_BY_WRANGLER_CREATE"
+
+# 部署时由 ZCode 按用户域名填写,例如:
+# routes = [ { pattern = "api.example.com", custom_domain = true } ]
