@@ -31,25 +31,10 @@ const genKey = () => crypto.randomUUID();
 const isCode = s => typeof s === 'string' && /^[2-9A-HJKMNP-Z]{6}$/.test(s);
 
 async function ensureSchema(env) {
-  const { exec } = env.DB;
-  await exec(`CREATE TABLE IF NOT EXISTS rooms (
-    code TEXT PRIMARY KEY,
-    room_key TEXT UNIQUE NOT NULL,
-    created_at INTEGER NOT NULL
-  )`);
-  await exec(`CREATE TABLE IF NOT EXISTS events (
-    room_key TEXT NOT NULL,
-    id TEXT NOT NULL,
-    ts INTEGER NOT NULL,
-    by TEXT NOT NULL,
-    type TEXT NOT NULL,
-    payload TEXT NOT NULL,
-    PRIMARY KEY (room_key, id)
-  )`);
-  await exec(`CREATE TABLE IF NOT EXISTS join_rate (
-    ip TEXT NOT NULL, day TEXT NOT NULL, count INTEGER NOT NULL,
-    PRIMARY KEY (ip, day)
-  )`);
+  // 注意:D1 exec() 按换行切分语句,DDL 必须单行
+  await env.DB.exec(`CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, room_key TEXT UNIQUE NOT NULL, created_at INTEGER NOT NULL)`);
+  await env.DB.exec(`CREATE TABLE IF NOT EXISTS events (room_key TEXT NOT NULL, id TEXT NOT NULL, ts INTEGER NOT NULL, by TEXT NOT NULL, type TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY (room_key, id))`);
+  await env.DB.exec(`CREATE TABLE IF NOT EXISTS join_rate (ip TEXT NOT NULL, day TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (ip, day))`);
 }
 
 function validEvent(e) {
@@ -68,7 +53,7 @@ export default {
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     } });
-    try { await ensureSchema(env); } catch (e) { return json({ error: 'db init failed' }, 500); }
+    try { await ensureSchema(env); } catch (e) { return json({ error: 'db init failed', detail: String(e && e.message || e) }, 500); }
 
     const url = new URL(request.url);
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';

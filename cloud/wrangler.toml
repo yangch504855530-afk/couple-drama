@@ -5,7 +5,7 @@ compatibility_date = "2026-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "drama-relay-db"
-database_id = "TO_BE_FILLED_BY_WRANGLER_CREATE"
+database_id = "d9d614df-2aac-4885-b960-338198144001"
 
-# 部署时由 ZCode 按用户域名填写,例如:
-# routes = [ { pattern = "api.example.com", custom_domain = true } ]
+# 自定义域名路由——待 NS 切换到 Cloudflare 且 zone 激活后取消注释:
+# routes = [ { pattern = "api.yangch.website", custom_domain = true } ]

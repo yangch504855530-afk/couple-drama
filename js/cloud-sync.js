@@ -8,7 +8,7 @@
   'use strict';
 
   const API_KEY = 'cd.cloud'; // { api, code, roomKey, me, lastPull }
-  const DEFAULT_API = ''; // 部署时填后端地址,如 https://api.example.com
+  const DEFAULT_API = 'https://drama-relay.drama-relay.workers.dev'; // TODO: NS 切换后改 https://api.yangch.website(国内可达更稳)
   const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
   const jget = (k, d) => { try { const v = LS(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
   const jset = (k, v) => LS(k, JSON.stringify(v));
