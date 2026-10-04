@@ -626,6 +626,7 @@
         <div class="card">
         <h3>🔗 双人同步 <span class="count">已连接</span></h3>
         <p class="hint">房间码 <b>${esc(st.code)}</b> ｜ 你递的台阶直接出现在 TA 手机上，TA 接住会自动记回你的统计。日志、免战牌、电量<b>永不同步</b>（情绪私有红线）。</p>
+        <p class="hint">如需加入或创建新的小剧场，请先解除连接——一个小剧场只属于两个人。</p>
         <div class="draw-bar"><button class="mini danger" id="cloud-unbind">解除连接</button></div>
         </div>`;
       $('#cloud-unbind').addEventListener('click', () => {

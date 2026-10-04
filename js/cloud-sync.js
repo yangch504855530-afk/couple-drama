@@ -37,30 +37,42 @@
     return data;
   }
 
-  /* 创建房间:拿 6 位码 + roomKey */
+  /* 创建房间:拿 6 位码 + roomKey(创建者即第一位成员;规则 v4.3.1:已有房间须先解除连接) */
   async function createRoom(apiBase) {
+    if (isBound()) throw new Error('已连接一个小剧场——请先解除连接，再创建新的');
     const st = state() || { me: uuid(), lastPull: 0 };
     st.api = ((apiBase || DEFAULT_API) || '').replace(/\/+$/, '');
-    saveState(st); // 先落盘:api() 依赖 state().api 拼 base URL(v4.2 修复 501:未先保存导致请求打到本机静态服务器)
-    const res = await api('/room', { method: 'POST', body: '{}' });
+    saveState(st); // 先落盘:api() 依赖 state().api 拼 base URL
+    const res = await api('/room', { method: 'POST', body: JSON.stringify({ me: st.me }) });
     st.code = res.code; st.roomKey = res.roomKey;
     saveState(st);
     return st;
   }
 
-  /* 加入房间:6 位码换 roomKey */
+  /* 加入房间:6 位码换 roomKey(幂等:同一设备重复加入同一房间无害;满员 2 人被拒) */
   async function joinRoom(apiBase, code) {
+    if (isBound()) throw new Error('已连接一个小剧场——请先解除连接，再加入新的');
     const st = state() || { me: uuid(), lastPull: 0 };
     st.api = ((apiBase || DEFAULT_API) || '').replace(/\/+$/, '');
     saveState(st); // 同上
-    const res = await api('/room/join', { method: 'POST', body: JSON.stringify({ code: String(code || '').trim() }) });
+    const res = await api('/room/join', { method: 'POST', body: JSON.stringify({ code: String(code || '').trim(), me: st.me }) });
     st.code = String(code).trim().toUpperCase(); st.roomKey = res.roomKey;
     saveState(st);
     return st;
   }
 
-  /* 解绑:本机清除(云端房间因码不重用自然废弃) */
-  function unbind() { LS(API_KEY, null); }
+  /* 解绑:通知服务器释放席位(失败不阻塞),然后清除本机绑定。数据与房间保留,凭码可随时回来 */
+  function unbind() {
+    const st = state();
+    if (st && st.api && st.roomKey && st.me) {
+      fetch(st.api + '/room/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomKey: st.roomKey, me: st.me }),
+      }).catch(() => {});
+    }
+    LS(API_KEY, null);
+  }
 
   /* 发事件:白名单+轻队列(失败静默,下次 pull/push 重试) */
   let outbox = jget('cd.cloudOutbox', []);

@@ -35,7 +35,13 @@ async function ensureSchema(env) {
   await env.DB.exec(`CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, room_key TEXT UNIQUE NOT NULL, created_at INTEGER NOT NULL)`);
   await env.DB.exec(`CREATE TABLE IF NOT EXISTS events (room_key TEXT NOT NULL, id TEXT NOT NULL, ts INTEGER NOT NULL, by TEXT NOT NULL, type TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY (room_key, id))`);
   await env.DB.exec(`CREATE TABLE IF NOT EXISTS join_rate (ip TEXT NOT NULL, day TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (ip, day))`);
+  // v4.3.1 房间成员表:一个房间最多 2 人;join 幂等(同一 member 重复加入不占新席位);leave 释放席位
+  await env.DB.exec(`CREATE TABLE IF NOT EXISTS room_members (room_key TEXT NOT NULL, member TEXT NOT NULL, joined_at INTEGER NOT NULL, PRIMARY KEY (room_key, member))`);
 }
+
+const ROOM_CAPACITY = 2;
+
+const isMemberId = s => typeof s === 'string' && /^[A-Za-z0-9-]{8,64}$/.test(s);
 
 function validEvent(e) {
   return e && typeof e.id === 'string' && e.id.length <= 64
@@ -58,8 +64,10 @@ export default {
     const url = new URL(request.url);
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
 
-    /* 创建房间 */
+    /* 创建房间(创建者即第一位成员) */
     if (url.pathname === '/room' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      if (!isMemberId(body.me)) return json({ error: '缺少身份标识' }, 400);
       const roomKey = genKey();
       // 码冲突重试(6 位码 31^6 空间,冲突概率极低)
       for (let i = 0; i < 5; i++) {
@@ -67,16 +75,22 @@ export default {
         try {
           await env.DB.prepare('INSERT INTO rooms (code, room_key, created_at) VALUES (?, ?, ?)')
             .bind(code, roomKey, Date.now()).run();
+          await env.DB.prepare('INSERT OR IGNORE INTO room_members (room_key, member, joined_at) VALUES (?, ?, ?)')
+            .bind(roomKey, body.me, Date.now()).run();
           return json({ code, roomKey });
         } catch (e) { /* 唯一键冲突→换码重试 */ }
       }
       return json({ error: 'code gen failed' }, 500);
     }
 
-    /* 加入房间:6 位码换 roomKey(一次性钥匙交换),IP 限流防猜解 */
+    /* 加入房间:6 位码换 roomKey。规则(v4.3.1):
+     * - 直接加入邀请人的房间;同一成员重复加入幂等(不占新席位、不报错)
+     * - 房间上限 2 人:满员且来者不是成员 → 明确拒绝
+     * - join 有 IP 限流防猜解 */
     if (url.pathname === '/room/join' && request.method === 'POST') {
       const body = await request.json().catch(() => ({}));
       if (!isCode(body.code)) return json({ error: '房间码格式不对' }, 400);
+      if (!isMemberId(body.me)) return json({ error: '缺少身份标识' }, 400);
       const day = new Date().toISOString().slice(0, 10);
       const rate = await env.DB.prepare(
         'INSERT INTO join_rate (ip, day, count) VALUES (?, ?, 1) ON CONFLICT (ip, day) DO UPDATE SET count = count + 1 RETURNING count'
@@ -84,7 +98,28 @@ export default {
       if (rate && rate.count > JOIN_DAILY_LIMIT) return json({ error: '尝试太多次了，明天再来' }, 429);
       const room = await env.DB.prepare('SELECT room_key FROM rooms WHERE code = ?').bind(body.code.toUpperCase()).first();
       if (!room) return json({ error: '房间码不存在——让 TA 再看一眼' }, 404);
+      const already = await env.DB.prepare('SELECT 1 AS x FROM room_members WHERE room_key = ? AND member = ?')
+        .bind(room.room_key, body.me).first();
+      if (!already) {
+        const cnt = await env.DB.prepare('SELECT COUNT(*) AS c FROM room_members WHERE room_key = ?')
+          .bind(room.room_key).first();
+        if (cnt && cnt.c >= ROOM_CAPACITY) return json({ error: '房间已满——每个小剧场只属于两个人' }, 403);
+        await env.DB.prepare('INSERT OR IGNORE INTO room_members (room_key, member, joined_at) VALUES (?, ?, ?)')
+          .bind(room.room_key, body.me, Date.now()).run();
+      }
       return json({ roomKey: room.room_key });
+    }
+
+    /* 离开房间:释放席位(解绑时调用;数据与房间保留,凭码可随时回来) */
+    if (url.pathname === '/room/leave' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      if (!genKeyPattern(body.roomKey)) return json({ error: 'roomKey 非法' }, 400);
+      if (!isMemberId(body.me)) return json({ error: '缺少身份标识' }, 400);
+      await env.DB.prepare('DELETE FROM room_members WHERE room_key = ? AND member = ?')
+        .bind(body.roomKey, body.me).run();
+      const left = await env.DB.prepare('SELECT COUNT(*) AS c FROM room_members WHERE room_key = ?')
+        .bind(body.roomKey).first();
+      return json({ ok: true, remaining: left ? left.c : 0 });
     }
 
     /* 拉事件:增量 */
