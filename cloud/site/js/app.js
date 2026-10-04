@@ -467,6 +467,7 @@
       <div id="pool-slot"></div>
       <div id="log-slot"></div>
       <div id="cloud-slot"></div>
+      <div id="backup-slot"></div>
       <div id="set-slot"></div>`;
     renderStreak();
     renderThings();
@@ -474,6 +475,7 @@
     renderPool();
     renderLog();
     renderCloudCard();
+    renderBackupCard();
     renderSettings();
   }
 
@@ -669,6 +671,70 @@
   }
 
   /* 🔗 双人同步(云中继 v4.2) 结束 */
+
+  /* ---------- 📦 备份与恢复(v4.3:数据主权在用户手里——零服务器、零账号,恢复码=全部数据+绑定钥匙) ---------- */
+  function renderBackupCard() {
+    const slot = $('#backup-slot'); if (!slot) return;
+    slot.innerHTML = `
+      <div class="card">
+      <h3>📦 备份与恢复 <span class="count">数据只存本机——换设备前先备份</span></h3>
+      <p class="hint">导出的恢复码包含<b>全部数据与绑定钥匙</b>——像保存密码一样把它存进微信收藏/备忘录，不要发给他人。</p>
+      <div class="draw-bar"><button class="suit-btn" id="bk-export">📤 导出恢复码</button></div>
+      <div id="bk-out"></div>
+      <p class="hint" style="margin-top:10px">换新手机/新浏览器？把恢复码粘贴到这里，一键回到原来的一切：</p>
+      <textarea id="bk-in" class="need-input" style="height:64px" placeholder="把恢复码粘贴到这里…"></textarea>
+      <div class="draw-bar"><button class="mini" id="bk-import">♻️ 恢复数据</button></div>
+      </div>`;
+    $('#bk-export').addEventListener('click', exportBackup);
+    $('#bk-import').addEventListener('click', importBackup);
+  }
+
+  function exportBackup() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('cd.')) data[k] = localStorage.getItem(k);
+    }
+    const payload = { app: 'couple-drama', version: 1, exported: new Date().toISOString(), data };
+    const text = JSON.stringify(payload);
+    const out = $('#bk-out'); if (!out) return;
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    out.innerHTML = `
+      <textarea id="bk-text" class="need-input" style="height:90px" readonly>${esc(text)}</textarea>
+      <div class="draw-bar">
+        <button class="mini" id="bk-copy">📋 复制全部</button>
+        <a class="mini" style="text-decoration:none;display:inline-block" download="双人戏精备份-${today()}.json" href="${url}">⬇️ 下载备份文件</a>
+      </div>
+      <p class="hint gold">✅ 恢复码已生成（约 ${Math.ceil(text.length / 1024)} KB）。存好它——这是你们全部回忆的钥匙。</p>`;
+    $('#bk-copy').addEventListener('click', () => {
+      const ta = $('#bk-text'); ta.select();
+      const done = () => toast('📋 已复制——存进微信收藏/备忘录，换机不丢。');
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, () => { document.execCommand('copy'); done(); });
+      else { document.execCommand('copy'); done(); }
+    });
+    out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function importBackup() {
+    const raw = ($('#bk-in').value || '').trim();
+    if (!raw) { toast('先把恢复码粘贴进来。', true); return; }
+    let payload = null;
+    try { payload = JSON.parse(raw); } catch (e) { toast('❌ 这不是有效的恢复码（格式不对）。', true); return; }
+    if (!payload || payload.app !== 'couple-drama' || payload.version !== 1 || !payload.data || typeof payload.data !== 'object') {
+      toast('❌ 恢复码内容不对——确认粘贴的是完整的一段？', true); return;
+    }
+    const keys = Object.keys(payload.data).filter(k => k.startsWith('cd.'));
+    if (!keys.length) { toast('❌ 恢复码里没有数据。', true); return; }
+    if (!confirm('将用这份备份覆盖当前设备的全部数据（现有记录会被替换）。确定恢复？')) return;
+    try {
+      const old = [];
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('cd.')) old.push(k); }
+      old.forEach(k => localStorage.removeItem(k));
+      keys.forEach(k => { try { localStorage.setItem(k, String(payload.data[k])); } catch (e) { /* 单键超限跳过 */ } });
+      toast('♻️ 恢复完成——欢迎回来。');
+      setTimeout(() => location.reload(), 900); // 全量重载:所有模块重新读存储,绑定自动恢复
+    } catch (e) { toast('❌ 恢复失败：' + esc(String(e.message || e)), true); }
+  }
 
   /* 设置（名字/纪念日/节拍/清空） */
   function renderSettings() {
