@@ -2,6 +2,13 @@ name = "drama-relay"
 main = "worker.js"
 compatibility_date = "2026-01-01"
 
+# 双域名:游戏本体 + 云中继 API(routes 必须在 [[d1_databases]] 表头之前,否则会被并入该表)
+routes = [
+  { pattern = "yangch.website", custom_domain = true },
+  { pattern = "www.yangch.website", custom_domain = true },
+  { pattern = "api.yangch.website", custom_domain = true },
+]
+
 # 游戏本体静态资产(由 sync-site 从项目根同步;API 路径强制进 Worker,其余直接走边缘缓存)
 [assets]
 directory = "./site"
@@ -12,10 +19,3 @@ run_worker_first = ["/room", "/room/*", "/events", "/events/*"]
 binding = "DB"
 database_name = "drama-relay-db"
 database_id = "d9d614df-2aac-4885-b960-338198144001"
-
-# 双域名:游戏本体 + 云中继 API(待 zone 激活后生效)
-routes = [
-  { pattern = "yangch.website", custom_domain = true },
-  { pattern = "www.yangch.website", custom_domain = true },
-  { pattern = "api.yangch.website", custom_domain = true },
-]
