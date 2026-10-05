@@ -7,6 +7,9 @@
 (function (global) {
   'use strict';
 
+  /* v4.7 夸夸跨设备同步总开关(停用开关):false 时 emit 不发送 praise;pull 回调侧不管,由 app 侧判断 */
+  const PRAISE_SYNC_ENABLED = true;
+
   const API_KEY = 'cd.cloud'; // { api, code, roomKey, me, lastPull }
   const DEFAULT_API = 'https://api.yangch.website'; // 自有域名,国内可达(旧 workers.dev 通道仍在线,已绑定的用户不受影响)
   const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
@@ -71,7 +74,7 @@
         body: JSON.stringify({ roomKey: st.roomKey, me: st.me }),
       }).catch(() => {});
     }
-    LS(API_KEY, null);
+    try { localStorage.removeItem(API_KEY); } catch (e) { LS(API_KEY, 'null'); } // R4:彻底删键,不残留 "null" 字符串
   }
 
   /* 发事件:白名单+轻队列(失败静默,下次 pull/push 重试) */
@@ -79,8 +82,9 @@
   function emit(type, payload) {
     const st = state();
     if (!isBound()) return null;
+    if (type === 'praise' && !PRAISE_SYNC_ENABLED) return null; // v4.7 夸夸停用开关(同管发送)
     const ev = { id: uuid(), ts: Date.now(), date: today(), by: st.me, type, payload };
-    const WHITELIST = ['repair', 'repair_ack'];
+    const WHITELIST = ['repair', 'repair_ack', 'praise'];
     if (!WHITELIST.includes(type)) return null;
     outbox.push(ev); jset('cd.cloudOutbox', outbox);
     flush();
@@ -119,6 +123,6 @@
   }
   function stopAuto() { if (timer) { clearInterval(timer); timer = null; } }
 
-  global.CloudSync = { state, isBound, createRoom, joinRoom, unbind, emit, pull, startAuto, stopAuto, mergeEvents, defaultApi: () => DEFAULT_API };
+  global.CloudSync = { state, isBound, createRoom, joinRoom, unbind, emit, pull, startAuto, stopAuto, mergeEvents, defaultApi: () => DEFAULT_API, PRAISE_SYNC_ENABLED };
   if (typeof module !== 'undefined' && module.exports) module.exports = { mergeEvents };
 })(typeof window !== 'undefined' ? window : globalThis);

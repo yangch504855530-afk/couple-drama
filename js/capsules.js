@@ -40,7 +40,7 @@
       if (dd > 0) {
         return '<div class="cap locked">🔒 给 ' + esc(toName) + ' 的胶囊 · 还有 <b>' + dd + '</b> 天可拆<div class="cap-meta">' + esc(c.created) + ' 封存</div></div>';
       }
-      return '<div class="cap ready">🔓 <b>可拆了！</b>（' + esc(c.created) + ' 封存）<div class="cap-meta">' + esc(c.text) + '</div><button class="btn-mini" data-open="' + c.id + '">💛 拆信</button></div>';
+      return '<div class="cap ready">🔓 <b>可拆了！</b>（' + esc(c.created) + ' 封存）<button class="btn-mini" data-open="' + c.id + '">💛 拆信</button></div>';
     }).join('');
     slot.innerHTML = [
       '<div class="card capsule">',

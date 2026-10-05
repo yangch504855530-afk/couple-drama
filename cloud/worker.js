@@ -8,9 +8,10 @@
  */
 
 const CODE_CHARS = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'; // 去混淆字符集(无 0/1/I/L/O)
-const ALLOWED_TYPES = ['repair', 'repair_ack'];
+const ALLOWED_TYPES = ['repair', 'repair_ack', 'praise'];
 const MAX_EVENTS_PER_PUSH = 50;
 const JOIN_DAILY_LIMIT = 20;
+const PRAISE_24H_LIMIT = 20; // v4.7 夸夸限流:单人(room_key+by)24h 含本批不超过 20 条,防一端刷屏
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), {
   status,
@@ -50,6 +51,13 @@ function validEvent(e) {
     && ALLOWED_TYPES.includes(e.type)
     && e.payload && typeof e.payload === 'object'
     && JSON.stringify(e.payload).length <= 500;
+}
+
+/* v4.7 夸夸载荷校验:text 必须 string,剔除控制符后 ≤60 字,否则该条按非法过滤 */
+const stripCtrl = s => String(s).replace(/[\u0000-\u001F\u007F]/g, '');
+function validPraise(e) {
+  return e && e.payload && typeof e.payload.text === 'string'
+    && stripCtrl(e.payload.text).length <= 60;
 }
 
 export default {
@@ -137,9 +145,24 @@ export default {
     if (url.pathname === '/events' && request.method === 'POST') {
       const body = await request.json().catch(() => ({}));
       if (!genKeyPattern(body.roomKey)) return json({ error: 'roomKey 非法' }, 400);
-      const evs = Array.isArray(body.events) ? body.events.filter(validEvent) : [];
+      // v4.7:praise 类型额外校验载荷(text 非法按条过滤,不整批拒)
+      const evs = Array.isArray(body.events)
+        ? body.events.filter(e => validEvent(e) && (e.type !== 'praise' || validPraise(e)))
+        : [];
       if (!evs.length) return json({ error: '没有合法事件' }, 400);
       if (evs.length > MAX_EVENTS_PER_PUSH) return json({ error: '一次推太多' }, 400);
+      // v4.7 夸夸限流:本批含 praise 时,按 (room_key, by) 查 24h 已存数+本批数,超限 429
+      const praiseInBatch = {};
+      evs.forEach(e => { if (e.type === 'praise') praiseInBatch[e.by] = (praiseInBatch[e.by] || 0) + 1; });
+      const since24h = Date.now() - 24 * 3600 * 1000;
+      for (const by of Object.keys(praiseInBatch)) {
+        const row = await env.DB.prepare(
+          "SELECT COUNT(*) AS c FROM events WHERE room_key=? AND by=? AND type='praise' AND ts>?"
+        ).bind(body.roomKey, by, since24h).first();
+        if ((row ? row.c : 0) + praiseInBatch[by] > PRAISE_24H_LIMIT) {
+          return json({ error: '夸夸太热情了,休息一下再发' }, 429);
+        }
+      }
       const stmts = evs.map(e => env.DB.prepare(
         'INSERT OR IGNORE INTO events (room_key, id, ts, by, type, payload) VALUES (?, ?, ?, ?, ?, ?)'
       ).bind(body.roomKey, e.id, e.ts, e.by, e.type, JSON.stringify(e.payload)));

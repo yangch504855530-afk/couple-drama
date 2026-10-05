@@ -9,6 +9,10 @@
   const D = window.DramaData, E = window.DramaEngine;
   const $ = s => document.querySelector(s);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  /* P1-2:名字统一清洗——NFC 归一 → 剔控制符/零宽字符/双向隔离符/尖括号引号反引号反斜杠 → trim → 截 20 字;保 CJK/字母/数字/常规 emoji */
+  const cleanName = s => String(s || '').normalize('NFC')
+    .replace(/[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069<>"'`\\]/g, '')
+    .trim().slice(0, 20);
   const pad2 = n => String(n).padStart(2, '0');
   const today = () => { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
   const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
@@ -51,25 +55,46 @@
   }
   let curTab = 'today';
 
-  /* v4.6.1:弃用原生 <input type="date">(各环境日历/滚轮行为不一,微信里选日要多点一次)——三下拉全环境一致 */
-  function dateSelectsHtml(value) {
+  /* v4.6.1:弃用原生 <input type="date">(各环境日历/滚轮行为不一,微信里选日要多点一次)——三下拉全环境一致
+   * R8 修复:allowFuture 时年份含未来 2 年(下次见面需要选明年) */
+  function dateSelectsHtml(value, allowFuture) {
     const parts = (value || '').split('-');
     const y0 = +parts[0] || 0, m0 = +parts[1] || 0, d0 = +parts[2] || 0;
     const thisYear = new Date().getFullYear();
+    const yMax = thisYear + (allowFuture ? 2 : 0);
     let yOpts = '<option value="">年</option>';
-    for (let i = thisYear; i >= thisYear - 60; i--) yOpts += `<option value="${i}"${y0 === i ? ' selected' : ''}>${i}</option>`;
+    for (let i = yMax; i >= thisYear - 60; i--) yOpts += `<option value="${i}"${y0 === i ? ' selected' : ''}>${i}</option>`;
     let mOpts = '<option value="">月</option>';
     for (let i = 1; i <= 12; i++) mOpts += `<option value="${i}"${m0 === i ? ' selected' : ''}>${i}月</option>`;
     let dOpts = '<option value="">日</option>';
     for (let i = 1; i <= 31; i++) dOpts += `<option value="${i}"${d0 === i ? ' selected' : ''}>${i}</option>`;
     return `<div class="date3"><select data-k="y">${yOpts}</select><select data-k="m">${mOpts}</select><select data-k="d">${dOpts}</select></div>`;
   }
+  /* P1-7:年/月变更时按当月实际天数重建"日"选项(闰年感知);已选日>当月天数时钳到月末 */
+  const daysInMonth3 = (y, m) => (y && m) ? new Date(+y, +m, 0).getDate() : 31;
+  function bindDate3(box) {
+    if (!box) return;
+    const sel = k => box.querySelector(`[data-k="${k}"]`);
+    const yS = sel('y'), mS = sel('m'), dS = sel('d');
+    if (!yS || !mS || !dS) return;
+    const rebuild = () => {
+      const n = daysInMonth3(yS.value, mS.value);
+      const keep = dS.value;
+      let dOpts = '<option value="">日</option>';
+      for (let i = 1; i <= n; i++) dOpts += `<option value="${i}">${i}</option>`;
+      dS.innerHTML = dOpts;
+      dS.value = keep === '' ? '' : String(Math.min(+keep, n)); // 保留已选;超出当月天数钳到月末
+    };
+    yS.addEventListener('change', rebuild);
+    mS.addEventListener('change', rebuild);
+  }
   function readDate3(box) {
     if (!box) return '';
     const g = k => { const el = box.querySelector(`[data-k="${k}"]`); return el ? el.value : ''; };
     const y = g('y'), m = g('m'), d = g('d');
     if (!y || !m || !d) return '';
-    return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    const dc = Math.min(+d, daysInMonth3(y, m)); // P1-7:读取后再钳一次,兜住未联动/异常 DOM 残留(如 2-31)
+    return y + '-' + String(m).padStart(2, '0') + '-' + String(dc).padStart(2, '0');
   }
 
   /* ---------- 🚪 首次引导(v4.6 三幕式:艺名→选台→邀请函;全程可跳过,邀请永不拦截) ---------- */
@@ -112,16 +137,22 @@
         <button class="ob-skip" id="ob-skip">先随便看看</button>
       </div>`;
     $('#ob-next').addEventListener('click', () => {
-      OB.you = ($('#ob-you').value || '').trim().slice(0, 6);
-      OB.her = ($('#ob-her').value || '').trim().slice(0, 6);
+      OB.you = cleanName($('#ob-you').value); // P1-2:入口统一清洗
+      OB.her = cleanName($('#ob-her').value);
       OB.since = readDate3(mask.querySelector('.date3'));
       obStage2();
     });
     $('#ob-skip').addEventListener('click', () => obFinish(false));
-    mask.addEventListener('click', e => { if (e.target === mask) obFinish(false); });
+    bindDate3(mask.querySelector('.date3')); // P1-7:幕一日期三下拉联动
   }
   /* 幕二·选台(同框/异地分岔) */
   function obStage2() {
+    jset('cd.onboarded', true); // P1-4:进入第二幕即算完成引导——此后中断/刷新不再重跑三幕
+    if (OB.you || OB.her || OB.since) { // 名字同步落盘:幕二刷新不丢(T5-1 修复)
+      const pf = profile();
+      if (OB.you) pf.you = OB.you; if (OB.her) pf.her = OB.her; if (OB.since) pf.since = OB.since;
+      jset('cd.profile', pf);
+    }
     const mask = obMask();
     mask.innerHTML = `
       <div class="onboard-card">
@@ -141,10 +172,10 @@
     });
     $('#ob-far').addEventListener('click', obStage3);
     $('#ob-skip2').addEventListener('click', () => obFinish(true));
-    mask.onclick = e => { if (e.target === mask) obFinish(true); };
   }
   /* 幕三·邀请函(自动建房+canvas 邀请卡+可复制邀请链接;失败/跳过都不拦截) */
   function obStage3() {
+    if (window.CloudSync && window.CloudSync.isBound()) { obFinish(true); return; } // P1-4:已连接时直接收尾,不再建房(会撞"请先解除连接"报错)
     const mask = obMask();
     mask.innerHTML = `
       <div class="onboard-card">
@@ -155,7 +186,6 @@
         <button class="ob-skip" id="ob-skip3">TA 还没空？先自己演</button>
       </div>`;
     $('#ob-skip3').addEventListener('click', () => obFinish(true));
-    mask.onclick = e => { if (e.target === mask) obFinish(true); };
     (async () => {
       try {
         const st = await window.CloudSync.createRoom();
@@ -163,7 +193,7 @@
         $('#ob-inv-msg').textContent = '邀请函已生成——长按保存，微信发给 TA：';
         $('#ob-inv-body').innerHTML = makeInviteCard(st.code)
           + '<button class="btn big" id="ob-copy-link" style="margin-top:10px">📋 复制邀请链接（点开即入座）</button>';
-        const link = location.href.split('#')[0] + '#r=' + st.code;
+        const link = location.href.split('#')[0] + '#r=' + st.code + '&n=' + encodeURIComponent(cleanName(OB.you)); // P1-10:链接带上邀请人名字(已清洗)
         $('#ob-copy-link').addEventListener('click', () => {
           const done = () => toast('📋 链接已复制——微信发给 TA，TA 点开就能入座。');
           if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done, () => { const ta = document.createElement('textarea'); ta.value = link; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); });
@@ -211,9 +241,11 @@
   }
   /* 扫邀请链接自动入座:URL 带 #r=房间码 → 弹「接过戏票」(预填码+自报名字,一键加入) */
   function maybeJoinFromHash() {
-    const m = (location.hash || '').match(/#r=([2-9A-HJKMNP-Z]{6})/i);
+    const m = (location.hash || '').match(/#r=([2-9A-HJKMNP-Z]{6})(?:&n=([^&]+))?/i);
     if (!m) return false;
     const code = m[1].toUpperCase();
+    let invName = ''; // P1-10:邀请人名字,非法编码回退空
+    if (m[2]) { try { invName = cleanName(decodeURIComponent(m[2])); } catch (e) { invName = ''; } }
     history.replaceState(null, '', location.pathname + location.search); // 清掉 hash 防刷新重复弹
     if (window.CloudSync && window.CloudSync.isBound()) return false; // 已在座,不再弹
     const mask = obMask();
@@ -222,21 +254,21 @@
         <div class="ob-spot"></div>
         <div class="ob-logo">🎟️</div>
         <h2 style="font-size:20px">有人递来一张戏票</h2>
-        <p class="ob-sub">房间码已带到：<b style="color:#e8b04b;font-size:20px;letter-spacing:3px">${esc(code)}</b></p>
+        <p class="ob-sub">房间码已带到：<b style="color:#e8b04b;font-size:20px;letter-spacing:3px">${esc(code)}</b>${invName ? '<br>邀请人：' + esc(invName) : ''}</p>
         <input id="jt-name" class="jt-input" maxlength="6" placeholder="你的名字">
         <button class="btn big" id="jt-go">接过戏票，入座</button>
         <button class="ob-skip" id="jt-skip">先不加入</button>
         <p class="hint" id="jt-msg" style="margin-top:8px"></p>
       </div>`;
-    mask.onclick = e => { if (e.target === mask) closeJoin(mask); };
     $('#jt-skip').addEventListener('click', () => closeJoin(mask));
     $('#jt-go').addEventListener('click', async () => {
-      const name = ($('#jt-name').value || '').trim().slice(0, 6);
+      const name = cleanName($('#jt-name').value); // P1-2:入口统一清洗
       if (name) { const pf = profile(); pf.you = name; jset('cd.profile', pf); }
       $('#jt-msg').textContent = '正在入座…';
       try {
         await window.CloudSync.joinRoom(null, code);
         window.CloudSync.startAuto(30, handleRemoteEvents);
+        if (invName) { const pf = profile(); pf.her = invName; jset('cd.profile', pf); } // P1-10:入座成功,邀请人写入 her(与 pf.you 自报名同一处 profile 逻辑)
         jset('cd.onboarded', true);
         mask.remove();
         renderAll(); switchTab('today');
@@ -293,11 +325,13 @@
       return `<span class="${cls}" title="${key}"></span>`;
     }).join('');
     const pending = jget('cd.repair', []).find(x => x.date === today() && x.caught === null);
-    const dueLine = st.lastDone === null ? '🎬 首演随时开始。' : (() => {
+    // P1-9:今日已有演出时 dueLine 收敛为一句,不再叠加节拍/首演文案(T6-2:勾场/抽卡演完/剧本杀青任一都算"已开演",不只看 cd.log)
+    const playedToday = todayLog.length > 0 || d.mainDone || d.sideDone || (d.drawn && d.drawn.length > 0);
+    const dueLine = playedToday ? '✅ 今日已开演——想再加一场随意，明天见。' : (st.lastDone === null ? '🎬 首演随时开始。' : (() => {
       const due = E.daysUntilDue(st.lastDone, today(), cadence());
       return due <= 0 ? '✨ 今天正好该演了——一张卡，一个夜晚。'
         : '🌙 距下一场还有 <b>' + due + '</b> 天（' + esc(CADENCE_LABEL[cadence()]) + '）；想提前演也随你。';
-    })();
+    })());
     const lastDrawn = (d.drawn && d.drawn.length) ? D.CARDS.find(c => c.id === d.drawn[d.drawn.length - 1]) : null;
     const remotePendings = jget('cd.remoteRepair', []).filter(x => x.date === today() && x.acked === null); // v4.2 远端台阶
 
@@ -326,7 +360,7 @@
         <p class="hint due-line">${dueLine}</p>
         ${st.doneCount === 0 ? `
         <div class="quickstart">
-          <div class="qs-head">⚡ 第一次玩？<b>两分钟极简场</b>——读出来就算演，尬住也算节目效果</div>
+          <div class="qs-head">⚡ 第一次玩？<b>碎片场，最快 5 分钟</b>——读出来就算演，尬住也算节目效果</div>
           ${(() => {
             const qs = D.CARDS.filter(c => c.minutes <= 5);
             const pick3 = qs.slice().sort(() => Math.random() - 0.5).slice(0, 3);
@@ -386,7 +420,8 @@
       </div>`;
     root.innerHTML = `
       ${pending || remotePendings.length ? `<div class="card ladder-tip"><b>🪜 有台阶待回应</b>——去 <a href="#" id="tip-ladder">台阶页</a> 看看或回应。</div>` : ''}
-      ${isNew ? (questCard + wrapCard) : (loveCard + questCard + wrapCard + freeCard)}`;
+      ${isNew ? (questCard + ((p.since || p.nextMeet) ? loveCard : '') + wrapCard) /* P1-6:新客填过纪念日/见面日也亮恋爱天数卡,排在戏单之后 */
+        : (loveCard + questCard + wrapCard + freeCard)}`;
 
     // 名字：input+debounce 即时保存（G2.3），change 兜底；同步更新依赖标签（免战牌/夸夸按钮）
     const syncNameLabels = pf => {
@@ -404,7 +439,7 @@
       let tm = null;
       const saveNames = () => {
         const pf = profile();
-        pf.you = $('#pf-you').value.trim() || '你'; pf.her = $('#pf-her').value.trim() || '她';
+        pf.you = cleanName($('#pf-you').value) || '你'; pf.her = cleanName($('#pf-her').value) || '她'; // P1-2:入口统一清洗
         jset('cd.profile', pf);
         syncNameLabels(pf);
       };
@@ -457,9 +492,9 @@
       if (d.energy === 'low') toast('😼 低迷日电量已记录——今天只出 15 分钟内的轻场，60 分钟的卡都藏起来了。');
     });
     const rb = $('#rest'); if (rb) rb.addEventListener('click', () => {
-      if (d.mainDone || d.sideDone) {
-        const n = logAll().filter(x => x.date === today()).length;
-        toast(n > 0 ? '今天已经开演 ' + n + ' 场了，不需要休演——好好享受今晚。' : '今天已经开了场次，不需要休演——好好享受今晚。', true);
+      const playedN = logAll().filter(x => x.date === today()).length;
+      if (d.mainDone || d.sideDone || playedN > 0) { // R3:勾场/抽卡演完任一路径都算已开演,休演互斥全覆盖
+        toast(playedN > 0 ? '今天已经开演 ' + playedN + ' 场了，不需要休演——好好享受今晚。' : '今天已经开了场次，不需要休演——好好享受今晚。', true);
         return;
       }
       d.restDay = true; saveDaily(d); toast('🌙 好的剧场也懂散场。明晚，灯照常亮。'); renderToday();
@@ -505,6 +540,10 @@
     const arr = jget('cd.praise', []);
     arr.unshift({ ts: Date.now(), date: today(), from, to, text: text.slice(0, 60) });
     jset('cd.praise', arr.slice(0, 100));
+    // v4.7 夸夸跨设备同步:本机入账成功后,已绑定且开关开启才 emit(60 字内文本)
+    if (window.CloudSync && window.CloudSync.isBound() && window.CloudSync.PRAISE_SYNC_ENABLED) {
+      window.CloudSync.emit('praise', { from, to, text: text.slice(0, 60) });
+    }
     checkAchievements();
     toast('💛 已存入存折。被夸的人现在就可以看。');
     form.style.display = 'none';
@@ -618,9 +657,27 @@
           changed = true;
           toast('💛 台阶被接住了——TA 回应了你。这一下比一百句道理都值钱。');
         }
+      } else if (e.type === 'praise') {
+        // v4.7 夸夸跨设备同步:按 id 去重(praiseSeen 上限 200,超限移最旧),视角互换后入账
+        const seen = jget('cd.praiseSeen', []);
+        if (!seen.includes(e.id)) {
+          const SWAP = { you: 'her', her: 'you' }; // 对端视角的 you/her 与本机相反
+          const arr = jget('cd.praise', []);
+          arr.unshift({ ts: e.ts, date: e.date || today(), from: SWAP[e.payload.from] || 'her', to: SWAP[e.payload.to] || 'you', text: e.payload.text });
+          jset('cd.praise', arr.slice(0, 100));
+          seen.push(e.id);
+          if (seen.length > 200) seen.shift();
+          jset('cd.praiseSeen', seen);
+          changed = true;
+          toast('💌 ' + esc(profile()[SWAP[e.payload.from] || 'her']) + ' 给你存了一句夸夸');
+        }
       }
     });
-    if (changed) { checkAchievements(); renderLadder(); }
+    if (changed) {
+      checkAchievements(); renderLadder();
+      renderToday(); // v4.7 夸夸入账刷新收尾区计数
+      if (curTab === 'treasure') renderTreasure(); // 夸夸存折在百宝箱
+    }
   }
 
   function renderLadder() {
@@ -970,7 +1027,9 @@
       try {
         const st = await C.createRoom();
         C.startAuto(30, handleRemoteEvents);
-        $('#cloud-msg').innerHTML = '<p class="hint gold">✅ 房间码：<b>' + esc(st.code) + '</b>——微信发给 TA，让 TA 在自己手机上「加入」。</p>';
+        renderCloudCard(); // T8 注记:建房成功即时切「已连接」卡,不必切页签
+        const slot2 = document.querySelector('#cloud-slot .count');
+        if (slot2) slot2.textContent = '已连接 · 房间码 ' + esc(st.code);
         renderLadder();
       } catch (e) { $('#cloud-msg').innerHTML = '<p class="hint">❌ ' + esc(e.message) + '</p>'; }
     });
@@ -1076,7 +1135,7 @@
         <input id="set-her" value="${esc(p.her)}" maxlength="6" title="右边这位的名字">
       </div>
       <label class="hint" style="display:block;margin:10px 0 4px">在一起的日子</label><div id="set-since-box">${dateSelectsHtml(p.since || '')}</div>
-      <label class="hint" style="display:block;margin:10px 0 4px">下次见面</label><div id="set-next-box">${dateSelectsHtml(p.nextMeet || '')}</div>
+      <label class="hint" style="display:block;margin:10px 0 4px">下次见面</label><div id="set-next-box">${dateSelectsHtml(p.nextMeet || '', true)}</div>
       <h3 style="margin-top:14px">🥁 演出节拍 <span class="count">${esc(CADENCE_LABEL[cadence()])}</span></h3>
       <p class="hint">节奏由你定、随时改——它是对自己的承诺，不是欠游戏的债。提前演、隔一阵再演，都算数；<b>偶尔晚一两天，节拍也照样连上</b>。</p>
       <div class="seg">
@@ -1086,12 +1145,13 @@
       </div>`;
     [$('#set-you'), $('#set-her')].forEach(inp => {
       let tm = null;
-      const saveNames = () => { const pf = profile(); pf.you = $('#set-you').value.trim() || '你'; pf.her = $('#set-her').value.trim() || '她'; jset('cd.profile', pf); return pf; };
+      const saveNames = () => { const pf = profile(); pf.you = cleanName($('#set-you').value) || '你'; pf.her = cleanName($('#set-her').value) || '她'; jset('cd.profile', pf); return pf; }; // P1-2:入口统一清洗
       inp.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(saveNames, 400); });
       inp.addEventListener('change', () => { clearTimeout(tm); saveNames(); renderToday(); toast('✅ 名字已保存。'); }); // renderToday 同步今日剧场标签
     });
     [ $('#set-since-box'), $('#set-next-box') ].forEach(box => {
       if (!box) return;
+      bindDate3(box); // P1-7:年/月变更按当月天数重建"日"
       box.addEventListener('change', () => {
         const pf = profile();
         pf.since = readDate3(document.getElementById('set-since-box'));
