@@ -269,3 +269,9 @@ footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px
   padding: 10px; font-size: 16px; text-align: center; width: 100%; margin: 8px 0 4px; }
 details.more-shows { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 6px; }
 details.more-shows summary { font-size: 12.5px; color: var(--muted); cursor: pointer; padding: 4px 0; }
+
+/* v4.6.1 三下拉日期(替代原生 date 控件,全环境一致) */
+.date3 { display: flex; gap: 6px; }
+.date3 select { flex: 1; background: var(--bg2); border: 1px solid var(--line); color: var(--ink);
+  border-radius: 10px; padding: 9px 4px; font-size: 14px; text-align: center; }
+.ob-date .date3 { margin-top: 6px; }

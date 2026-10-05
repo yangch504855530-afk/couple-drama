@@ -51,6 +51,27 @@
   }
   let curTab = 'today';
 
+  /* v4.6.1:弃用原生 <input type="date">(各环境日历/滚轮行为不一,微信里选日要多点一次)——三下拉全环境一致 */
+  function dateSelectsHtml(value) {
+    const parts = (value || '').split('-');
+    const y0 = +parts[0] || 0, m0 = +parts[1] || 0, d0 = +parts[2] || 0;
+    const thisYear = new Date().getFullYear();
+    let yOpts = '<option value="">年</option>';
+    for (let i = thisYear; i >= thisYear - 60; i--) yOpts += `<option value="${i}"${y0 === i ? ' selected' : ''}>${i}</option>`;
+    let mOpts = '<option value="">月</option>';
+    for (let i = 1; i <= 12; i++) mOpts += `<option value="${i}"${m0 === i ? ' selected' : ''}>${i}月</option>`;
+    let dOpts = '<option value="">日</option>';
+    for (let i = 1; i <= 31; i++) dOpts += `<option value="${i}"${d0 === i ? ' selected' : ''}>${i}</option>`;
+    return `<div class="date3"><select data-k="y">${yOpts}</select><select data-k="m">${mOpts}</select><select data-k="d">${dOpts}</select></div>`;
+  }
+  function readDate3(box) {
+    if (!box) return '';
+    const g = k => { const el = box.querySelector(`[data-k="${k}"]`); return el ? el.value : ''; };
+    const y = g('y'), m = g('m'), d = g('d');
+    if (!y || !m || !d) return '';
+    return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
+
   /* ---------- 🚪 首次引导(v4.6 三幕式:艺名→选台→邀请函;全程可跳过,邀请永不拦截) ---------- */
   const OB = { you: '', her: '', since: '' }; // 幕间暂存
   function obMask() {
@@ -86,14 +107,14 @@
           <span>×</span>
           <input id="ob-her" maxlength="6" placeholder="TA 的名字">
         </div>
-        <label class="ob-date">在一起的日子（选填）<input type="date" id="ob-since"></label>
+        <label class="ob-date">在一起的日子（选填）${dateSelectsHtml('')}</label>
         <button class="btn big" id="ob-next">入 座</button>
         <button class="ob-skip" id="ob-skip">先随便看看</button>
       </div>`;
     $('#ob-next').addEventListener('click', () => {
       OB.you = ($('#ob-you').value || '').trim().slice(0, 6);
       OB.her = ($('#ob-her').value || '').trim().slice(0, 6);
-      OB.since = $('#ob-since').value;
+      OB.since = readDate3(mask.querySelector('.date3'));
       obStage2();
     });
     $('#ob-skip').addEventListener('click', () => obFinish(false));
@@ -1054,8 +1075,8 @@
         <span class="amp">×</span>
         <input id="set-her" value="${esc(p.her)}" maxlength="6" title="右边这位的名字">
       </div>
-      <label class="hint">在一起的日子 <input type="date" id="set-since" value="${esc(p.since || '')}"></label>
-      <label class="hint">下次见面 <input type="date" id="set-next" value="${esc(p.nextMeet || '')}"></label>
+      <label class="hint" style="display:block;margin:10px 0 4px">在一起的日子</label><div id="set-since-box">${dateSelectsHtml(p.since || '')}</div>
+      <label class="hint" style="display:block;margin:10px 0 4px">下次见面</label><div id="set-next-box">${dateSelectsHtml(p.nextMeet || '')}</div>
       <h3 style="margin-top:14px">🥁 演出节拍 <span class="count">${esc(CADENCE_LABEL[cadence()])}</span></h3>
       <p class="hint">节奏由你定、随时改——它是对自己的承诺，不是欠游戏的债。提前演、隔一阵再演，都算数；<b>偶尔晚一两天，节拍也照样连上</b>。</p>
       <div class="seg">
@@ -1069,11 +1090,16 @@
       inp.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(saveNames, 400); });
       inp.addEventListener('change', () => { clearTimeout(tm); saveNames(); renderToday(); toast('✅ 名字已保存。'); }); // renderToday 同步今日剧场标签
     });
-    const since = $('#set-since'), nxt = $('#set-next');
-    [since, nxt].forEach(inp => inp.addEventListener('change', () => {
-      const pf = profile(); pf.since = since.value; pf.nextMeet = nxt.value; jset('cd.profile', pf);
-      toast('📅 重要的日子已记下。'); renderToday();
-    }));
+    [ $('#set-since-box'), $('#set-next-box') ].forEach(box => {
+      if (!box) return;
+      box.addEventListener('change', () => {
+        const pf = profile();
+        pf.since = readDate3(document.getElementById('set-since-box'));
+        pf.nextMeet = readDate3(document.getElementById('set-next-box'));
+        jset('cd.profile', pf);
+        toast('📅 重要的日子已记下。'); renderToday();
+      });
+    });
     document.querySelectorAll('#set-slot .seg-btn[data-cad]').forEach(b => b.addEventListener('click', () => {
       jset('cd.cadence', +b.dataset.cad);
       renderSettings(); renderStreak();
