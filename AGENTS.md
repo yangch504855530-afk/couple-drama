@@ -53,6 +53,8 @@ git push origin main             # Pages 自动构建，约 50 秒生效
 | **v4.2** | **云中继上线（自有域名）**：Cloudflare Workers+D1+匿名房间码（6 位码一次性 join 换 128 位 roomKey，join 限流 20 次/天/IP；事件白名单 repair/repair_ack 双端校验）。**一个 Worker 服务三域名**：yangch.website（本体 assets 静态）+ www + api.yangch.website（API）。台阶跨设备闭环：递出→对方手机真待接卡→亲手接住→ack 回流统计。坑：D1 exec() 按换行切语句（DDL 单行）/routes 必须写在 [[d1_databases]] 之前/createRoom 先 saveState 再调 api/workers.dev 国内被墙。全球多节点（check-host）验证 |
 | **v4.3** | **备份与恢复（数据主权）**：百宝箱"📦 备份与恢复"——导出恢复码（全部 cd.* 数据+绑定钥匙，复制/下载 .json）+导入（覆盖式+双确认+reload 全量重载）。解决换机/换浏览器本机数据丢失。e2e：导出→清空→导入→数据+绑定完整还原。仍是零服务器零账号（恢复码=用户自管钥匙） |
 | **v4.4** | **盲评裁决落地（20 角色盲评→总监任务包）**：N2 翻车友好化（每卡"低配演法：各念一遍就算演"标签+剧场规则"演砸是节目效果，尬住了是名场面"）+N3 两分钟极简场（总场数=0 时首屏出现"第一次玩？两分钟极简场"入口，3 张 ≤5 分钟卡随机）+N5 战报梗图化（大 emoji+戏码名+金句引用块+底部金色域名条 yangch.website）+心理条款页脚（"本游戏不是关系治疗"）。真二维码列 N5.1 待做（扫不出的二维码比没有更糟）。坑：wrangler OAuth token 会过期且刷新依赖网络（报 auth server unreachable 时先重试 whoami 再折腾 login） |
+| **v4.4.1-4.4.2** | **环境错配类 bug 清理（用户真机抓到保存按钮微信失灵）**：4.4.1 移动端/微信一律主推"长按图片保存"（`<a download>`+dataURL 在微信 WebView 无反应/iOS 不存相册）；4.4.2 夸夸 prompt()→页面内联表单（微信 iOS WebView prompt 不稳定）/备份卡下载链接按环境隐藏（主推复制到微信收藏）/maxTouchPoints 兜底 iPad 桌面模式/build.js 自动同步 cloud-site（只复制在役 5 js,杜绝手工漂移）+剔除死文件。**教训（第 4 次"环境错配"）**：测试锚定在实现者环境（桌面 Chromium），承诺锚定在用户环境（手机微信）——验收标准必须含"微信内打开" |
+| **v4.5** | **首次引导+遗留清偿**：🚪 单屏 onboarding（名字+纪念日选填+一键进第一场,点遮罩=跳过,cd.onboarded 标记）/N5.1 真二维码上线——**矩阵离线预生成内嵌**（qrcode-generator v1.4.4 生成 https://yangch.website 的 version2/ECC-M 矩阵,运行时零依赖零计算,tests/qr.test.js 结构校验 4 项护"扫得出"）;战报底部金条+台阶卡右下角均带码/跨午夜自动刷新（60s 轮询+visibilitychange,QA 遗留）/每周备份温和提醒（数据≥10条且距上次导出≥7天→备份卡标题旁一句,导出即静默 7 天,不弹窗不强制）/百宝箱 sticky 锚点导航（7 chips）/胶囊输入截断提示。31/31 测试。idea 池剩余：日志演者字段（归属设计未决,defer） |
 
 ## 已知设计裁决（勿反复）
 
