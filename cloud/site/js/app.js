@@ -122,17 +122,29 @@
       <div class="card quest">
         <h3>📜 今晚的场次 <span class="count">已演 ${todayLog.length} 场（加场不另计） ｜ 演了是收利，不演也没关系</span></h3>
         <p class="hint due-line">${dueLine}</p>
+        ${st.doneCount === 0 ? `
+        <div class="quickstart">
+          <div class="qs-head">⚡ 第一次玩？<b>两分钟极简场</b>——读出来就算演，尬住也算节目效果</div>
+          ${(() => {
+            const qs = D.CARDS.filter(c => c.minutes <= 5).sort((a, b) => (a.suit === 'fun' ? -1 : 1) - (b.suit === 'fun' ? -1 : 1));
+            const pick3 = qs.slice(0, 6).sort(() => Math.random() - 0.5).slice(0, 3);
+            return '<div class="qs-cards">' + pick3.map(c =>
+              `<button class="qs-card" data-qs="${c.id}"><b>${esc(c.title)}</b><span>${c.minutes} 分钟 · ${esc(D.SUITS[c.suit].name)}</span></button>`).join('') + '</div>';
+          })()}
+          <p class="hint">随便点一张，照着读完就算演完——没有观众，只有 TA。</p>
+        </div>` : ''}
         ${q.main ? `<label class="q"><input type="checkbox" id="q-main" ${d.mainDone ? 'checked' : ''}>
           <span class="suit-dot" style="background:${D.SUITS.gentle.color}">🌅 主场</span>
-          <b>${esc(q.main.title)}</b> — ${esc(q.main.text)}</label>` : ''}
+          <b>${esc(q.main.title)}</b> — ${esc(q.main.text)}<br><span class="lowmode">低配演法：两个人把这段各念一遍，念完就算演 ✅</span></label>` : ''}
         ${q.side ? `<label class="q"><input type="checkbox" id="q-side" ${d.sideDone ? 'checked' : ''}>
           <span class="suit-dot" style="background:${D.SUITS.fun.color}">🎭 加场</span>
-          <b>${esc(q.side.title)}</b> — ${esc(q.side.text)}</label>` : ''}
+          <b>${esc(q.side.title)}</b> — ${esc(q.side.text)}<br><span class="lowmode">低配演法：两个人把这段各念一遍，念完就算演 ✅</span></label>` : ''}
         <div class="dgrid" id="drawn-slot">${lastDrawn ? cardHtml(lastDrawn, d.drawn || []) : ''}</div>
         <div class="draw-bar">
           <button class="btn" id="lucky">🎲 手气抽一张</button>
           <button class="mini" id="tired">${d.energy === 'low' ? '⚡ 今晚累：只出轻场（点我恢复）' : '😼 今晚累了（只出 15 分钟轻场）'}</button>
         </div>
+        <p class="hint">🎭 剧场规则：演砸了是节目效果，尬住了是名场面——这里没有观众，不用演给任何人看。</p>
         ${d.restDay
           ? `<div class="restbox">🌙 今晚休演——保养日不算缺席，连击不断。<button class="mini" id="unrest">取消休演</button></div>`
           : `<button class="mini rest-btn" id="rest">🌙 今天不演了（休演不断连击）</button>`}
@@ -190,6 +202,16 @@
     });
 
     $('#tip-ladder') && ($('#tip-ladder').onclick = e => { e.preventDefault(); switchTab('ladder'); });
+
+    // N3 极简场:点击即入抽中池并滚动到卡位(演完按钮在卡上)
+    document.querySelectorAll('.qs-card').forEach(b => b.addEventListener('click', () => {
+      const id = b.dataset.qs;
+      if (!d.drawn.includes(id)) { d.drawn.push(id); saveDaily(d); }
+      const card = D.CARDS.find(c => c.id === id);
+      toast('⚡ 这张就是你们的第一场：' + esc(card.title) + '——照着读完就算演完。');
+      renderToday();
+      setTimeout(() => { const el = document.querySelector('#drawn-slot .done-btn'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80);
+    }));
 
     [['#q-main', 'mainDone'], ['#q-side', 'sideDone']].forEach(([sel, key]) => {
       const el = $(sel); if (!el) return;
@@ -279,37 +301,50 @@
     if (!todayLog.length) { toast('先演一场，才有战报可生成。', true); return; }
     const cv = document.createElement('canvas'); cv.width = 900; cv.height = 1200;
     const ctx = cv.getContext('2d');
+    // N5 梗图化:高对比底 + 大字标题 + 表情符号大字 + 引用块 + 底部醒目域名条
     const g = ctx.createLinearGradient(0, 0, 0, 1200);
     g.addColorStop(0, '#2a1c4d'); g.addColorStop(1, '#17102a');
     ctx.fillStyle = g; ctx.fillRect(0, 0, 900, 1200);
     ctx.strokeStyle = 'rgba(232,176,75,.5)'; ctx.lineWidth = 2; ctx.strokeRect(28, 28, 844, 1144);
     const center = (t, y, font, color) => { ctx.font = font; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(t, 450, y); };
-    center('🎭 双人戏精 · 战报', 150, 'bold 52px "Microsoft YaHei", sans-serif', '#e8b04b');
-    center(today(), 205, '26px "Microsoft YaHei", sans-serif', '#b3a6d6');
-    center(p.you + ' × ' + p.her, 275, 'bold 40px "Microsoft YaHei", sans-serif', '#f2ecff');
-    ctx.strokeStyle = 'rgba(232,176,75,.35)'; ctx.beginPath(); ctx.moveTo(120, 320); ctx.lineTo(780, 320); ctx.stroke();
-    center('今晚上演', 380, '24px "Microsoft YaHei", sans-serif', '#b3a6d6');
-    let y = 440;
-    todayLog.slice(0, 5).forEach(x => {
+    // 梗图式大标题
+    const mainCount = todayLog.length;
+    center('🎭 今晚开演 ' + mainCount + ' 场', 150, 'bold 60px "Microsoft YaHei", sans-serif', '#e8b04b');
+    center(p.you + ' × ' + p.her + ' ｜ ' + today(), 205, '26px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    ctx.strokeStyle = 'rgba(232,176,75,.35)'; ctx.beginPath(); ctx.moveTo(120, 240); ctx.lineTo(780, 240); ctx.stroke();
+    // 大表情 + 戏码名(梗图视觉核心)
+    let y = 330;
+    todayLog.slice(0, 4).forEach(x => {
       const c = D.CARDS.find(cc => cc.id === x.cardId);
-      const label = x.cardId === 'daily:quest' ? '📜 今日剧本杀青' : (c ? D.SUITS[c.suit].icon + ' ' + c.title : '🎭 一场好戏');
-      center(label, y, 'bold 32px "Microsoft YaHei", sans-serif', '#f2ecff'); y += 54;
+      const icon = x.cardId === 'daily:quest' ? '📜' : (c ? D.SUITS[c.suit].icon : '🎭');
+      const title = x.cardId === 'daily:quest' ? '今日剧本杀青' : (c ? c.title : '一场好戏');
+      center(icon, y + 60, '84px serif', '#f2ecff');
+      center(title, y + 130, 'bold 40px "Microsoft YaHei", sans-serif', '#f2ecff');
+      y += 170;
     });
+    // 今晚金句(引用块)
     const praises = jget('cd.praise', []).filter(x => x.date === today());
-    const quote = (todayLog.find(x => x.note) || {}).note || (praises[0] || {}).text || '今晚，我们演了一场好戏。';
-    y = Math.max(y + 40, 760);
-    ctx.font = 'italic 28px "Microsoft YaHei", sans-serif';
-    const lines = wrapText(ctx, '「' + quote + '」', 700);
-    ctx.fillStyle = '#ffd9a0';
-    lines.slice(0, 4).forEach((ln, i) => { ctx.textAlign = 'center'; ctx.fillText(ln, 450, y + i * 44); });
-    center('双人戏精 · 一台手机的小剧场', 1130, '22px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    const quote = (todayLog.find(x => x.note) || {}).note || (praises[0] || {}).text || '演砸了也算节目效果,我们笑场了。';
+    y = Math.max(y + 20, 950);
+    ctx.fillStyle = 'rgba(232,176,75,.08)';
+    ctx.fillRect(90, y - 40, 720, 110);
+    ctx.strokeStyle = '#e8b04b'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(90, y - 40); ctx.lineTo(90, y + 70); ctx.stroke();
+    ctx.font = 'bold 30px "Microsoft YaHei", sans-serif';
+    const lines = wrapText(ctx, '「' + quote + '」', 660);
+    ctx.fillStyle = '#ffd9a0'; ctx.textAlign = 'left';
+    lines.slice(0, 2).forEach((ln, i) => ctx.fillText(ln, 115, y + i * 42));
+    // 底部醒目域名条(N5:扫码级可读入口;真二维码待 N5.1)
+    ctx.fillStyle = '#e8b04b'; ctx.fillRect(0, 1100, 900, 100);
+    center('情侣小剧场 · 微信搜「双人戏精」', 1135, 'bold 26px "Microsoft YaHei", sans-serif', '#241a42');
+    center('yangch.website', 1172, 'bold 34px "Microsoft YaHei", sans-serif', '#241a42');
     const url = cv.toDataURL('image/png');
     const slot = $('#report-slot'); if (!slot) return;
     slot.innerHTML = `<img class="report-img" alt="今晚战报" src="${url}">
-      <p class="hint">手机长按图片即可保存；也可以点下面的按钮下载。</p>
+      <p class="hint">手机长按图片即可保存——发到你们的聊天框,TA 的朋友看到域名就能玩。</p>
       <div class="draw-bar"><a class="btn dl-btn" download="双人戏精战报-${today()}.png" href="${url}">⬇️ 保存战报</a></div>`;
     slot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    toast('📸 战报生成好了——存一张，发到你们的聊天框里。');
+    toast('📸 战报生成好了——存一张,发到你们的聊天框里。');
   }
 
   /* ---------- 🪜 台阶 ---------- */

@@ -200,3 +200,16 @@ footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px
 .warnbox { font-size: 12.5px; color: #ffd9a0; background: rgba(224,85,85,.1); border: 1px dashed rgba(224,85,85,.45);
   border-radius: 10px; padding: 8px 12px; margin: 8px 0; }
 .free-btn:disabled { cursor: not-allowed; }
+
+/* v4.4 N2/N3:极简场与低配演法 */
+.quickstart { border: 2px dashed var(--teal); border-radius: 14px; padding: 14px; margin: 10px 0; background: rgba(79,209,197,.06); }
+.qs-head { font-size: 15px; color: #b8fff5; margin-bottom: 10px; }
+.qs-head b { color: var(--teal); }
+.qs-cards { display: flex; gap: 10px; flex-wrap: wrap; }
+.qs-card { flex: 1 1 140px; background: var(--card2); border: 1px solid var(--teal); color: var(--ink);
+  border-radius: 12px; padding: 12px 10px; cursor: pointer; text-align: center; }
+.qs-card b { display: block; font-size: 15px; margin-bottom: 4px; }
+.qs-card span { font-size: 11.5px; color: var(--muted); }
+.qs-card:active { transform: scale(.97); }
+.lowmode { display: inline-block; font-size: 11.5px; color: #ffd9a0; background: rgba(232,176,75,.08);
+  border: 1px dashed rgba(232,176,75,.4); border-radius: 8px; padding: 2px 10px; margin-top: 4px; }
