@@ -157,6 +157,11 @@
           <button class="suit-btn" id="pr-you">💛 给${esc(p.her)}存一句</button>
           <button class="suit-btn" id="pr-her">💛 给${esc(p.you)}存一句</button>
         </div>
+        <div id="praise-form" style="display:none;margin-top:8px">
+          <p class="hint" id="praise-target"></p>
+          <textarea id="praise-text" class="need-input" style="height:60px" maxlength="60" placeholder="一句就够，不许带'但是'…"></textarea>
+          <div class="draw-bar"><button class="mini" id="praise-save">💛 存入</button><button class="mini" id="praise-cancel">取消</button></div>
+        </div>
         <p class="hint">本周已存 <b>${st.praiseWeek}</b> 句 ｜ 累计 ${st.praiseCount} 句</p>
         <div class="draw-bar">
           <button class="btn" id="make-report" ${todayLog.length ? '' : 'disabled'}>📸 生成今晚战报</button>
@@ -254,8 +259,10 @@
       d.restDay = true; saveDaily(d); toast('🌙 今晚休演，连击不断。好好休息。'); renderToday();
     });
     const ub = $('#unrest'); if (ub) ub.addEventListener('click', () => { d.restDay = false; saveDaily(d); renderToday(); });
-    $('#pr-you').addEventListener('click', () => savePraise('you', 'her'));
-    $('#pr-her').addEventListener('click', () => savePraise('her', 'you'));
+    $('#pr-you').addEventListener('click', () => showPraiseForm('you', 'her'));
+    $('#pr-her').addEventListener('click', () => showPraiseForm('her', 'you'));
+    const pfSave = $('#praise-save'); if (pfSave) pfSave.addEventListener('click', () => savePraise($('#praise-form').dataset.from, $('#praise-form').dataset.to));
+    const pfCancel = $('#praise-cancel'); if (pfCancel) pfCancel.addEventListener('click', () => { $('#praise-form').style.display = 'none'; });
     const mr = $('#make-report');
     if (mr && !mr.disabled) mr.addEventListener('click', makeReport);
     document.querySelectorAll('.free-btn').forEach(b => b.addEventListener('click', () => {
@@ -269,19 +276,32 @@
     bindDone();
   }
 
+  /* v4.4.2:夸夸改为页面内联输入(prompt() 在微信 iOS WebView 不稳定且手机体验差) */
+  const PRAISE_SEEDS = ['今天 TA 替你挡的一件小事', 'TA 最近让你心动的一个瞬间', 'TA 做得越来越像 TA 想成为的样子的一处'];
+  function showPraiseForm(from, to) {
+    const form = $('#praise-form'); if (!form) return;
+    form.style.display = 'block';
+    const seed = PRAISE_SEEDS[Math.floor(Math.random() * PRAISE_SEEDS.length)];
+    $('#praise-target').innerHTML = '给 <b>' + esc(profile()[to]) + '</b> 存一句夸夸（一句就够，不许带"但是"）<br>灵感：' + esc(seed) + '？';
+    const ta = $('#praise-text'); ta.value = '';
+    form.dataset.from = from; form.dataset.to = to;
+    setTimeout(() => ta.focus(), 50);
+    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
   function savePraise(from, to) {
-    const seeds = ['今天 TA 替你挡的一件小事', 'TA 最近让你心动的一个瞬间', 'TA 做得越来越像 TA 想成为的样子的一处'];
-    const askMsg = '给' + profile()[to] + '存一句夸夸（一句就够，不许带"但是"）' + String.fromCharCode(10) + '灵感：' + seeds[Math.floor(Math.random() * seeds.length)] + '？';
-    const text = (prompt(askMsg) || '').trim();
-    if (!text) return;
+    const form = $('#praise-form'); if (!form) return;
+    const ta = $('#praise-text');
+    const text = (ta.value || '').trim();
+    if (!text) { toast('先写一句——空着存不了。', true); return; }
     if (/但是|可是|不过/.test(text)) {
-      toast('❌ 这句话里有"但是"——夸夸就纯粹一点，重存一句？', true); return;
+      toast('❌ 这句话里有"但是"——夸夸就纯粹一点，改一改再存？', true); return;
     }
     const arr = jget('cd.praise', []);
     arr.unshift({ ts: Date.now(), date: today(), from, to, text: text.slice(0, 60) });
     jset('cd.praise', arr.slice(0, 100));
     checkAchievements();
     toast('💛 已存入存折。被夸的人现在就可以看。');
+    form.style.display = 'none';
     renderToday();
   }
 
@@ -464,12 +484,16 @@
   }
 
   /* v4.4.1 修复:<a download>+dataURL 在微信 WebView 点击无反应、iOS Safari 不存相册。
-   * 微信/移动端一律主推"长按图片保存"(100% 可靠),下载按钮仅保留在桌面浏览器。 */
+   * 微信/移动端一律主推"长按图片保存"(100% 可靠),下载按钮仅保留在桌面浏览器。
+   * v4.4.2:maxTouchPoints 兜底 iPad"请求桌面网站"模式(UA 无移动标识的触屏设备)。 */
+  function isMobileish() {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+      || (navigator.maxTouchPoints || 0) > 1;
+  }
   function saveHintHtml(fileName, url) {
     const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
-    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
     const longPress = '<p class="hint gold" style="font-size:14px">👆 <b>长按上面的图片</b> → 选「保存图片」/「发送给朋友」——微信里这样最稳。</p>';
-    if (isWeChat || isMobile) return longPress;
+    if (isWeChat || isMobileish()) return longPress;
     return longPress + `<div class="draw-bar" style="justify-content:center"><a class="btn dl-btn" download="${fileName}" href="${url}">⬇️ 保存到电脑</a></div>`;
   }
 
@@ -749,9 +773,13 @@
       <textarea id="bk-text" class="need-input" style="height:90px" readonly>${esc(text)}</textarea>
       <div class="draw-bar">
         <button class="mini" id="bk-copy">📋 复制全部</button>
-        <a class="mini" style="text-decoration:none;display:inline-block" download="双人戏精备份-${today()}.json" href="${url}">⬇️ 下载备份文件</a>
+        ${(() => { // v4.4.2:移动端/微信隐藏备份文件下载链接(同保存按钮坑)——主推复制到微信收藏/备忘录
+          const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+          if (isWeChat || isMobileish()) return '';
+          return '<a class="mini" style="text-decoration:none;display:inline-block" download="双人戏精备份-' + today() + '.json" href="' + url + '">⬇️ 下载备份文件</a>';
+        })()}
       </div>
-      <p class="hint gold">✅ 恢复码已生成（约 ${Math.ceil(text.length / 1024)} KB）。存好它——这是你们全部回忆的钥匙。</p>`;
+      <p class="hint gold">✅ 恢复码已生成（约 ${Math.ceil(text.length / 1024)} KB）。${/MicroMessenger/i.test(navigator.userAgent) || isMobileish() ? '点「📋 复制全部」，粘贴到<b>微信收藏或备忘录</b>存好——这是你们全部回忆的钥匙。' : '存好它——这是你们全部回忆的钥匙。'}</p>`;
     $('#bk-copy').addEventListener('click', () => {
       const ta = $('#bk-text'); ta.select();
       const done = () => toast('📋 已复制——存进微信收藏/备忘录，换机不丢。');
