@@ -2,15 +2,23 @@
 :root {
   --bg: #17102a; --bg2: #1f1538; --card: #241a42; --card2: #2c2050;
   --ink: #f2ecff; --muted: #b3a6d6; --line: #3d2f66;
-  --gold: #e8b04b; --red: #e05555; --teal: #4fd1c5;
+  --gold: #e8b04b; --red: #e05555; --teal: #4fd1c5; --pink: #e8a0a0;
+  --serif: Georgia, "Noto Serif SC", "Songti SC", "STSong", serif;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
   background: radial-gradient(1200px 600px at 50% -100px, #2a1c4d 0%, var(--bg) 60%);
   color: var(--ink); line-height: 1.65; min-height: 100vh; }
 
-header.site { text-align: center; padding: 26px 16px 14px; }
-header.site h1 { font-size: 26px; letter-spacing: 4px; color: var(--gold); text-shadow: 0 2px 12px rgba(232,176,75,.35); }
+header.site { text-align: center; padding: 26px 16px 14px; position: relative; overflow: hidden; }
+/* v4.6 品牌记忆点:交叉双追光(金+暖粉两束半透明光) */
+header.site::before, header.site::after, .onboard-card::before, .onboard-card::after {
+  content: ''; position: absolute; pointer-events: none; border-radius: 50%; }
+header.site::before { top: -120px; left: 6%; width: 260px; height: 300px;
+  background: radial-gradient(closest-side, rgba(232,176,75,.16), transparent 72%); }
+header.site::after { top: -100px; right: 4%; width: 230px; height: 280px;
+  background: radial-gradient(closest-side, rgba(232,160,160,.12), transparent 72%); }
+header.site h1 { font-family: var(--serif); font-size: 28px; letter-spacing: 5px; color: var(--gold); text-shadow: 0 2px 12px rgba(232,176,75,.35); }
 header.site .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
 header.site .rule { margin-top: 10px; display: inline-block; font-size: 12px; color: #ffd9a0;
   background: rgba(232,176,75,.12); border: 1px dashed rgba(232,176,75,.45); border-radius: 999px; padding: 4px 14px; }
@@ -24,11 +32,12 @@ nav.tabs button.active { background: var(--gold); color: #241a42; font-weight: 8
 main { max-width: 760px; margin: 0 auto; padding: 16px 14px 80px; }
 section.view { display: none; }
 section.view.active { display: block; }
-.vt { font-size: 20px; margin: 8px 0 10px; color: var(--gold); }
+.vt { font-size: 22px; margin: 8px 0 10px; color: var(--gold); font-family: var(--serif); letter-spacing: 1px; }
 .count { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 6px; }
 
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
-.card h3 { font-size: 16px; color: var(--gold); margin-bottom: 10px; }
+.card h3 { font-size: 17px; color: var(--ink); font-family: var(--serif); letter-spacing: 1px; margin-bottom: 10px; }
+.card h3 .count { font-family: "Microsoft YaHei", sans-serif; letter-spacing: 0; }
 .hint { font-size: 12.5px; color: var(--muted); margin: 6px 0; }
 .hint.gold { color: #ffd9a0; }
 
@@ -54,9 +63,16 @@ section.view.active { display: block; }
   border-radius: 999px; padding: 4px 14px; cursor: pointer; font-size: 13px; font-weight: 700; }
 .cta-row { text-align: center; margin-top: 16px; }
 .btn { border: none; background: linear-gradient(135deg, #e8b04b, #d96c3f); color: #241a42; font-weight: 800;
-  font-size: 16px; border-radius: 14px; padding: 12px 26px; cursor: pointer; }
+  font-size: 16px; border-radius: 14px; padding: 13px 26px; cursor: pointer; min-height: 48px; }
 .btn.big { width: 100%; }
 .btn:disabled { opacity: .35; cursor: not-allowed; filter: grayscale(.6); }
+
+/* v4.6 按钮三级制:suit-btn 降为描边级(金色只留给 CTA) */
+.suit-btn { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 999px;
+  padding: 8px 16px; font-size: 13.5px; cursor: pointer; font-weight: 600; }
+.suit-btn:active { border-color: var(--gold); color: var(--gold); }
+.suit-btn.on { background: var(--gold); color: #241a42; border-color: var(--gold); }
+.praise-btn { border-color: rgba(232,160,160,.55); color: var(--pink); } /* 烛光暖粉:互夸专属 */
 
 /* 卡池 */
 .draw-bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
@@ -236,3 +252,20 @@ footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px
 .toc-row button { border: 1px solid var(--line); background: var(--card); color: var(--muted);
   font-size: 12.5px; border-radius: 999px; padding: 5px 12px; cursor: pointer; }
 .toc-row button:active { color: var(--gold); border-color: var(--gold); }
+
+/* v4.6 三幕式引导:选台大卡/戏票/更多场次折叠 */
+.onboard-card { position: relative; overflow: hidden; }
+.onboard-card::before { top: -130px; left: 8%; width: 260px; height: 300px;
+  background: radial-gradient(closest-side, rgba(232,176,75,.16), transparent 72%); }
+.onboard-card::after { top: -110px; right: 4%; width: 230px; height: 280px;
+  background: radial-gradient(closest-side, rgba(232,160,160,.12), transparent 72%); }
+.onboard-card > * { position: relative; }
+.ob-mode { display: block; width: 100%; background: var(--bg2); border: 1px solid var(--line); color: var(--ink);
+  border-radius: 14px; padding: 14px 16px; margin: 10px 0; cursor: pointer; text-align: left; }
+.ob-mode:active { border-color: var(--gold); }
+.ob-mode b { display: block; font-size: 17px; font-family: var(--serif); letter-spacing: 1px; }
+.ob-mode span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.jt-input { background: var(--bg2); border: 1px solid var(--line); color: var(--ink); border-radius: 10px;
+  padding: 10px; font-size: 16px; text-align: center; width: 100%; margin: 8px 0 4px; }
+details.more-shows { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 6px; }
+details.more-shows summary { font-size: 12.5px; color: var(--muted); cursor: pointer; padding: 4px 0; }

@@ -51,44 +51,184 @@
   }
   let curTab = 'today';
 
-  /* ---------- 🚪 首次引导(v4.5:首屏太复杂的解法——单屏引导,名字+纪念日(选填),一键进第一场;随时跳过) ---------- */
+  /* ---------- 🚪 首次引导(v4.6 三幕式:艺名→选台→邀请函;全程可跳过,邀请永不拦截) ---------- */
+  const OB = { you: '', her: '', since: '' }; // 幕间暂存
+  function obMask() {
+    let mask = document.getElementById('onboard');
+    if (!mask) { mask = document.createElement('div'); mask.id = 'onboard'; document.body.appendChild(mask); }
+    return mask;
+  }
+  function obFinish(named, hintToast) {
+    const pf = profile();
+    if (named) {
+      pf.you = OB.you || '你'; pf.her = OB.her || '她';
+      if (OB.since) pf.since = OB.since;
+      jset('cd.profile', pf);
+    }
+    jset('cd.onboarded', true);
+    const mask = document.getElementById('onboard'); if (mask) mask.remove();
+    renderAll(); switchTab('today');
+    if (hintToast) toast(hintToast);
+    const qs = document.querySelector('.quickstart');
+    if (qs) setTimeout(() => qs.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+  }
+  /* 幕一·艺名 */
   function showOnboarding() {
-    const mask = document.createElement('div');
-    mask.id = 'onboard';
+    const mask = obMask();
     mask.innerHTML = `
       <div class="onboard-card">
+        <div class="ob-spot"></div>
         <div class="ob-logo">🎭</div>
         <h2>双人戏精</h2>
-        <p class="ob-sub">一台手机，打开就玩的情侣小剧场——<br>抽张卡，照着演，笑完存张战报。</p>
+        <p class="ob-sub">一台手机也能开演的情侣小剧场<br>灯光已就位，就差你俩。</p>
         <div class="ob-names">
           <input id="ob-you" maxlength="6" placeholder="你的名字">
           <span>×</span>
           <input id="ob-her" maxlength="6" placeholder="TA 的名字">
         </div>
         <label class="ob-date">在一起的日子（选填）<input type="date" id="ob-since"></label>
-        <button class="btn big" id="ob-start">🎬 开始第一场</button>
-        <button class="ob-skip" id="ob-skip">跳过，先随便看看</button>
-        <p class="hint" style="margin-top:8px">免注册免下载，一切只存在这台手机上。</p>
+        <button class="btn big" id="ob-next">入 座</button>
+        <button class="ob-skip" id="ob-skip">先随便看看</button>
       </div>`;
-    document.body.appendChild(mask);
-    const finish = (named) => {
-      const pf = profile();
-      if (named) {
-        pf.you = ($('#ob-you').value || '').trim().slice(0, 6) || '你';
-        pf.her = ($('#ob-her').value || '').trim().slice(0, 6) || '她';
-        const since = $('#ob-since').value; if (since) pf.since = since;
-        jset('cd.profile', pf);
+    $('#ob-next').addEventListener('click', () => {
+      OB.you = ($('#ob-you').value || '').trim().slice(0, 6);
+      OB.her = ($('#ob-her').value || '').trim().slice(0, 6);
+      OB.since = $('#ob-since').value;
+      obStage2();
+    });
+    $('#ob-skip').addEventListener('click', () => obFinish(false));
+    mask.addEventListener('click', e => { if (e.target === mask) obFinish(false); });
+  }
+  /* 幕二·选台(同框/异地分岔) */
+  function obStage2() {
+    const mask = obMask();
+    mask.innerHTML = `
+      <div class="onboard-card">
+        <div class="ob-spot"></div>
+        <h2 style="font-size:20px">你们怎么演？</h2>
+        <p class="ob-sub">两种都可以，以后随时换。</p>
+        <button class="ob-mode" id="ob-same">
+          <b>🎭 同框演出</b><span>一台手机递来递去，今晚就能开演</span>
+        </button>
+        <button class="ob-mode" id="ob-far">
+          <b>📱 异地对戏</b><span>两台手机——给 TA 发一张邀请函</span>
+        </button>
+        <button class="ob-skip" id="ob-skip2">先不选，直接进剧场</button>
+      </div>`;
+    $('#ob-same').addEventListener('click', () => {
+      obFinish(true, '🎭 ' + esc(OB.you || '你') + ' × ' + esc(OB.her || '她') + '——现在就把手机递给 TA，开演！');
+    });
+    $('#ob-far').addEventListener('click', obStage3);
+    $('#ob-skip2').addEventListener('click', () => obFinish(true));
+    mask.onclick = e => { if (e.target === mask) obFinish(true); };
+  }
+  /* 幕三·邀请函(自动建房+canvas 邀请卡+可复制邀请链接;失败/跳过都不拦截) */
+  function obStage3() {
+    const mask = obMask();
+    mask.innerHTML = `
+      <div class="onboard-card">
+        <div class="ob-spot"></div>
+        <h2 style="font-size:20px">你的剧场，虚位以待</h2>
+        <p class="ob-sub" id="ob-inv-msg">正在搭建你们的剧场…</p>
+        <div id="ob-inv-body"></div>
+        <button class="ob-skip" id="ob-skip3">TA 还没空？先自己演</button>
+      </div>`;
+    $('#ob-skip3').addEventListener('click', () => obFinish(true));
+    mask.onclick = e => { if (e.target === mask) obFinish(true); };
+    (async () => {
+      try {
+        const st = await window.CloudSync.createRoom();
+        if (window.CloudSync.isBound()) window.CloudSync.startAuto(30, handleRemoteEvents);
+        $('#ob-inv-msg').textContent = '邀请函已生成——长按保存，微信发给 TA：';
+        $('#ob-inv-body').innerHTML = makeInviteCard(st.code)
+          + '<button class="btn big" id="ob-copy-link" style="margin-top:10px">📋 复制邀请链接（点开即入座）</button>';
+        const link = location.href.split('#')[0] + '#r=' + st.code;
+        $('#ob-copy-link').addEventListener('click', () => {
+          const done = () => toast('📋 链接已复制——微信发给 TA，TA 点开就能入座。');
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done, () => { const ta = document.createElement('textarea'); ta.value = link; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); });
+          else { const ta = document.createElement('textarea'); ta.value = link; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); }
+        });
+      } catch (e) {
+        $('#ob-inv-msg').textContent = '剧场暂时没搭起来（' + esc(String(e.message || e)) + '）——先自己演，之后在百宝箱「双人同步」里再邀请 TA。';
       }
-      jset('cd.onboarded', true);
-      mask.remove();
-      renderAll(); switchTab('today');
-      if (named) toast('✅ 记住了——' + esc(pf.you) + ' × ' + esc(pf.her) + '。抽一张，演起来！');
-      const qs = document.querySelector('.quickstart');
-      if (qs) setTimeout(() => qs.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
-    };
-    $('#ob-start').addEventListener('click', () => finish(true));
-    $('#ob-skip').addEventListener('click', () => finish(false));
-    mask.addEventListener('click', e => { if (e.target === mask) finish(false); }); // 点遮罩=跳过,不强制
+    })();
+  }
+  /* 邀请函 canvas:双追光+虚位以待+大号房间码+固定域名二维码(手动输码兜底) */
+  function makeInviteCard(code) {
+    const pf = { you: OB.you || '你', her: OB.her || '她' };
+    const cv = document.createElement('canvas'); cv.width = 750; cv.height = 1200;
+    const ctx = cv.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, 1200);
+    g.addColorStop(0, '#2a1c4d'); g.addColorStop(1, '#17102a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 750, 1200);
+    // 双追光(品牌视觉:两束半透明光柱交叉)
+    const sp1 = ctx.createRadialGradient(180, 160, 20, 180, 160, 420);
+    sp1.addColorStop(0, 'rgba(232,176,75,.16)'); sp1.addColorStop(1, 'transparent');
+    ctx.fillStyle = sp1; ctx.fillRect(0, 0, 750, 1200);
+    const sp2 = ctx.createRadialGradient(580, 240, 20, 580, 240, 420);
+    sp2.addColorStop(0, 'rgba(232,160,160,.13)'); sp2.addColorStop(1, 'transparent');
+    ctx.fillStyle = sp2; ctx.fillRect(0, 0, 750, 1200);
+    ctx.strokeStyle = 'rgba(232,176,75,.5)'; ctx.lineWidth = 2; ctx.strokeRect(24, 24, 702, 1152);
+    const center = (t, y, font, color) => { ctx.font = font; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(t, 375, y); };
+    center('🎭 双人戏精', 130, 'bold 46px Georgia, "Noto Serif SC", serif', '#e8b04b');
+    center('你的剧场，虚位以待', 210, 'bold 40px Georgia, "Noto Serif SC", serif', '#f2ecff');
+    center(pf.you, 380, 'bold 52px Georgia, serif', '#ffd9a0');
+    center('×', 440, '34px serif', '#b3a6d6');
+    center(pf.her === '她' ? '—— 虚位以待 ——' : pf.her, 500, 'bold 52px Georgia, serif', pf.her === '她' ? '#7d6fa8' : '#ffd9a0');
+    center('TA 的手机扫下方二维码进剧场', 620, '24px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    // 大号房间码(手动输入兜底)
+    ctx.setLineDash([8, 6]); ctx.strokeStyle = '#e8b04b';
+    ctx.strokeRect(150, 660, 450, 120); ctx.setLineDash([]);
+    center(code, 740, 'bold 72px Georgia, serif', '#e8b04b');
+    center('（在剧场里输入这串码，也能入座）', 815, '20px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    // 固定域名二维码
+    drawQr(ctx, 285, 860, 6, 10); // 25*6=150+静区20 → 190 宽,居中 285..475
+    center('yangch.website', 1090, 'bold 30px Georgia, serif', '#e8b04b');
+    center('台阶直达 TA 手机 · 演砸了也是节目效果', 1135, '20px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    const url = cv.toDataURL('image/png');
+    return `<img class="report-img" alt="邀请函" src="${url}">`;
+  }
+  /* 扫邀请链接自动入座:URL 带 #r=房间码 → 弹「接过戏票」(预填码+自报名字,一键加入) */
+  function maybeJoinFromHash() {
+    const m = (location.hash || '').match(/#r=([2-9A-HJKMNP-Z]{6})/i);
+    if (!m) return false;
+    const code = m[1].toUpperCase();
+    history.replaceState(null, '', location.pathname + location.search); // 清掉 hash 防刷新重复弹
+    if (window.CloudSync && window.CloudSync.isBound()) return false; // 已在座,不再弹
+    const mask = obMask();
+    mask.innerHTML = `
+      <div class="onboard-card">
+        <div class="ob-spot"></div>
+        <div class="ob-logo">🎟️</div>
+        <h2 style="font-size:20px">有人递来一张戏票</h2>
+        <p class="ob-sub">房间码已带到：<b style="color:#e8b04b;font-size:20px;letter-spacing:3px">${esc(code)}</b></p>
+        <input id="jt-name" class="jt-input" maxlength="6" placeholder="你的名字">
+        <button class="btn big" id="jt-go">接过戏票，入座</button>
+        <button class="ob-skip" id="jt-skip">先不加入</button>
+        <p class="hint" id="jt-msg" style="margin-top:8px"></p>
+      </div>`;
+    mask.onclick = e => { if (e.target === mask) closeJoin(mask); };
+    $('#jt-skip').addEventListener('click', () => closeJoin(mask));
+    $('#jt-go').addEventListener('click', async () => {
+      const name = ($('#jt-name').value || '').trim().slice(0, 6);
+      if (name) { const pf = profile(); pf.you = name; jset('cd.profile', pf); }
+      $('#jt-msg').textContent = '正在入座…';
+      try {
+        await window.CloudSync.joinRoom(null, code);
+        window.CloudSync.startAuto(30, handleRemoteEvents);
+        jset('cd.onboarded', true);
+        mask.remove();
+        renderAll(); switchTab('today');
+        toast('🎭 角色已定，对手戏开演——TA 递的台阶会直接到你手机上。');
+      } catch (e) {
+        $('#jt-msg').textContent = '❌ ' + (e.message || '入座失败') + '——确认码没输错？或稍后再试。';
+      }
+    });
+    return true;
+  }
+  function closeJoin(mask) {
+    mask.remove();
+    if (!jget('cd.onboarded', false)) showOnboarding(); // 没走过引导的,回到正常首启
   }
 
   /* ---------- 派生状态 ---------- */
@@ -141,9 +281,8 @@
     const remotePendings = jget('cd.remoteRepair', []).filter(x => x.date === today() && x.acked === null); // v4.2 远端台阶
 
     const root = $('#view-today');
-    root.innerHTML = `
-      ${pending || remotePendings.length ? `<div class="card ladder-tip"><b>🪜 有台阶待回应</b>——去 <a href="#" id="tip-ladder">台阶页</a> 看看或回应。</div>` : ''}
-
+    const isNew = st.doneCount < 3; // v4.6 首屏减重:前 3 场只当"戏单",杂项让路
+    const loveCard = `
       <div class="love-days card">
         <div class="ld-num">${st.daysTogether === null
           ? '<b style="font-size:22px">💕</b><span style="font-size:13px;margin-left:8px">还没填纪念日 · 去「百宝箱 → 设置」</span>'
@@ -159,8 +298,8 @@
             return dd > 0 ? '距离下次见面还有 <b>' + dd + '</b> 天' : (dd === 0 ? '今天见面！' : '');
           })() : '纪念日与见面日可在「🎁 百宝箱 → 设置」里填'}</div>
         </div>
-      </div>
-
+      </div>`;
+    const questCard = `
       <div class="card quest">
         <h3>📜 今晚的场次 <span class="count">已演 ${todayLog.length} 场（加场不另计） ｜ 演了是收利，不演也没关系</span></h3>
         <p class="hint due-line">${dueLine}</p>
@@ -168,8 +307,8 @@
         <div class="quickstart">
           <div class="qs-head">⚡ 第一次玩？<b>两分钟极简场</b>——读出来就算演，尬住也算节目效果</div>
           ${(() => {
-            const qs = D.CARDS.filter(c => c.minutes <= 5).sort((a, b) => (a.suit === 'fun' ? -1 : 1) - (b.suit === 'fun' ? -1 : 1));
-            const pick3 = qs.slice(0, 6).sort(() => Math.random() - 0.5).slice(0, 3);
+            const qs = D.CARDS.filter(c => c.minutes <= 5);
+            const pick3 = qs.slice().sort(() => Math.random() - 0.5).slice(0, 3);
             return '<div class="qs-cards">' + pick3.map(c =>
               `<button class="qs-card" data-qs="${c.id}"><b>${esc(c.title)}</b><span>${c.minutes} 分钟 · ${esc(D.SUITS[c.suit].name)}</span></button>`).join('') + '</div>';
           })()}
@@ -178,9 +317,9 @@
         ${q.main ? `<label class="q"><input type="checkbox" id="q-main" ${d.mainDone ? 'checked' : ''}>
           <span class="suit-dot" style="background:${D.SUITS.gentle.color}">🌅 主场</span>
           <b>${esc(q.main.title)}</b> — ${esc(q.main.text)}<br><span class="lowmode">低配演法：两个人把这段各念一遍，念完就算演 ✅</span></label>` : ''}
-        ${q.side ? `<label class="q"><input type="checkbox" id="q-side" ${d.sideDone ? 'checked' : ''}>
+        ${q.side && !isNew ? `<details class="more-shows"><summary>更多场次</summary><label class="q"><input type="checkbox" id="q-side" ${d.sideDone ? 'checked' : ''}>
           <span class="suit-dot" style="background:${D.SUITS.fun.color}">🎭 加场</span>
-          <b>${esc(q.side.title)}</b> — ${esc(q.side.text)}<br><span class="lowmode">低配演法：两个人把这段各念一遍，念完就算演 ✅</span></label>` : ''}
+          <b>${esc(q.side.title)}</b> — ${esc(q.side.text)}<br><span class="lowmode">低配演法：两个人把这段各念一遍，念完就算演 ✅</span></label></details>` : ''}
         <div class="dgrid" id="drawn-slot">${lastDrawn ? cardHtml(lastDrawn, d.drawn || []) : ''}</div>
         <div class="draw-bar">
           <button class="btn" id="lucky">🎲 手气抽一张</button>
@@ -190,14 +329,14 @@
         ${d.restDay
           ? `<div class="restbox">🌙 今晚休演——保养日不算缺席，连击不断。<button class="mini" id="unrest">取消休演</button></div>`
           : `<button class="mini rest-btn" id="rest">🌙 今天不演了（休演不断连击）</button>`}
-      </div>
-
+      </div>`;
+    const wrapCard = `
       <div class="card">
         <h3>🎬 收尾 <span class="count">演完一场，别忘了这两步</span></h3>
         <p class="hint">研究发现：稳定的亲密关系里，积极互动是消极互动的 5 倍以上。每天互存一句，存的时候不许带"但是"。</p>
         <div class="draw-bar">
-          <button class="suit-btn" id="pr-you">💛 给${esc(p.her)}存一句</button>
-          <button class="suit-btn" id="pr-her">💛 给${esc(p.you)}存一句</button>
+          <button class="suit-btn praise-btn" id="pr-you">💛 给${esc(p.her)}存一句</button>
+          <button class="suit-btn praise-btn" id="pr-her">💛 给${esc(p.you)}存一句</button>
         </div>
         <div id="praise-form" style="display:none;margin-top:8px">
           <p class="hint" id="praise-target"></p>
@@ -210,8 +349,8 @@
         </div>
         ${todayLog.length ? '' : '<p class="hint">先演一场，才有战报可生成。</p>'}
         <div id="report-slot"></div>
-      </div>
-
+      </div>`;
+    const freeCard = `
       <div class="card">
         <h3>🎫 免战牌</h3>
         <p class="hint">打出后本回合作废，对方不许追问原因。每日每人 ${E.FREE_PER_DAY} 张，零点重置。</p>
@@ -224,6 +363,9 @@
         </div>
         <p class="hint">本日已用 ${((d.freeUsed && d.freeUsed.you) || 0) + ((d.freeUsed && d.freeUsed.her) || 0)}/${FREE_TOTAL} 张。</p>
       </div>`;
+    root.innerHTML = `
+      ${pending || remotePendings.length ? `<div class="card ladder-tip"><b>🪜 有台阶待回应</b>——去 <a href="#" id="tip-ladder">台阶页</a> 看看或回应。</div>` : ''}
+      ${isNew ? (questCard + wrapCard) : (loveCard + questCard + wrapCard + freeCard)}`;
 
     // 名字：input+debounce 即时保存（G2.3），change 兜底；同步更新依赖标签（免战牌/夸夸按钮）
     const syncNameLabels = pf => {
@@ -237,6 +379,7 @@
       if (ph) ph.textContent = '💛 给' + pf.you + '存一句';
     };
     [$('#pf-you'), $('#pf-her')].forEach(inp => {
+      if (!inp) return; // v4.6:新客首屏隐藏恋爱天数卡(名字框在其中),改引导里已采集
       let tm = null;
       const saveNames = () => {
         const pf = profile();
@@ -298,7 +441,7 @@
         toast(n > 0 ? '今天已经开演 ' + n + ' 场了，不需要休演——好好享受今晚。' : '今天已经开了场次，不需要休演——好好享受今晚。', true);
         return;
       }
-      d.restDay = true; saveDaily(d); toast('🌙 今晚休演，连击不断。好好休息。'); renderToday();
+      d.restDay = true; saveDaily(d); toast('🌙 好的剧场也懂散场。明晚，灯照常亮。'); renderToday();
     });
     const ub = $('#unrest'); if (ub) ub.addEventListener('click', () => { d.restDay = false; saveDaily(d); renderToday(); });
     $('#pr-you').addEventListener('click', () => showPraiseForm('you', 'her'));
@@ -969,7 +1112,7 @@
     });
     try { checkAchievements(); } catch (e) { console.error(e); }
     if (window.CloudSync && window.CloudSync.isBound()) window.CloudSync.startAuto(30, handleRemoteEvents); // v4.2 绑定后自动拉远端台阶
-    if (!jget('cd.onboarded', false)) showOnboarding(); // v4.5 首次引导
+    if (!maybeJoinFromHash() && !jget('cd.onboarded', false)) showOnboarding(); // v4.6:扫码入座优先,否则三幕式引导
     // v4.5 跨午夜检测:页面开着过零点/手机切回前台时自动刷新当日数据(QA 遗留项)
     let lastDay = today();
     const dayFlip = () => { if (today() !== lastDay) { lastDay = today(); renderAll(); switchTab(curTab); toast('🌅 新的一天——场次和免战牌已刷新。'); } };
