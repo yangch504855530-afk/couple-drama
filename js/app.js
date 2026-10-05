@@ -43,10 +43,52 @@
   }
 
   function switchTab(name) {
+    curTab = name;
     if (RENDERERS[name]) { try { RENDERERS[name](); } catch (e) { console.error(e); toast('⚠️ 页面渲染出错：' + esc(e.message), true); } }
     document.querySelectorAll('section.view').forEach(s => s.classList.toggle('active', s.id === 'view-' + name));
     document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     window.scrollTo({ top: 0 });
+  }
+  let curTab = 'today';
+
+  /* ---------- 🚪 首次引导(v4.5:首屏太复杂的解法——单屏引导,名字+纪念日(选填),一键进第一场;随时跳过) ---------- */
+  function showOnboarding() {
+    const mask = document.createElement('div');
+    mask.id = 'onboard';
+    mask.innerHTML = `
+      <div class="onboard-card">
+        <div class="ob-logo">🎭</div>
+        <h2>双人戏精</h2>
+        <p class="ob-sub">一台手机，打开就玩的情侣小剧场——<br>抽张卡，照着演，笑完存张战报。</p>
+        <div class="ob-names">
+          <input id="ob-you" maxlength="6" placeholder="你的名字">
+          <span>×</span>
+          <input id="ob-her" maxlength="6" placeholder="TA 的名字">
+        </div>
+        <label class="ob-date">在一起的日子（选填）<input type="date" id="ob-since"></label>
+        <button class="btn big" id="ob-start">🎬 开始第一场</button>
+        <button class="ob-skip" id="ob-skip">跳过，先随便看看</button>
+        <p class="hint" style="margin-top:8px">免注册免下载，一切只存在这台手机上。</p>
+      </div>`;
+    document.body.appendChild(mask);
+    const finish = (named) => {
+      const pf = profile();
+      if (named) {
+        pf.you = ($('#ob-you').value || '').trim().slice(0, 6) || '你';
+        pf.her = ($('#ob-her').value || '').trim().slice(0, 6) || '她';
+        const since = $('#ob-since').value; if (since) pf.since = since;
+        jset('cd.profile', pf);
+      }
+      jset('cd.onboarded', true);
+      mask.remove();
+      renderAll(); switchTab('today');
+      if (named) toast('✅ 记住了——' + esc(pf.you) + ' × ' + esc(pf.her) + '。抽一张，演起来！');
+      const qs = document.querySelector('.quickstart');
+      if (qs) setTimeout(() => qs.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    };
+    $('#ob-start').addEventListener('click', () => finish(true));
+    $('#ob-skip').addEventListener('click', () => finish(false));
+    mask.addEventListener('click', e => { if (e.target === mask) finish(false); }); // 点遮罩=跳过,不强制
   }
 
   /* ---------- 派生状态 ---------- */
@@ -306,6 +348,25 @@
   }
 
   /* ---------- 📸 战报（canvas，纯前端零请求） ---------- */
+  /* N5.1 真二维码:矩阵离线预生成(qrcode-generator lib, version2/ECC-M, 内容=https://yangch.website),
+   * 运行时零依赖零计算,保证可扫。重新生成:见 tests/qr.test.js 头部注释。 */
+  const QR_YANGCH = { size: 25, hex: 'fe2e3fc14e506ea06bb75c95dba62aec122507faaafe01870082bfe72eef8f87ee4d74117d9eef0a0d24588a2f8d7728d52db7aefa0060443f8b2a304a710ba11fbdd37b0ee99c1b04d9f1febc848' };
+  function drawQr(ctx, x, y, modulePx, quietPx) {
+    const q = quietPx === undefined ? Math.ceil(modulePx * 2.5) : quietPx; // 静区≥2模块,扫码器要求
+    const s = QR_YANGCH.size;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x, y, s * modulePx + q * 2, s * modulePx + q * 2);
+    ctx.fillStyle = '#17102a';
+    for (let r = 0; r < s; r++) {
+      for (let c = 0; c < s; c++) {
+        const bitPos = r * s + c;
+        const hexChar = parseInt(QR_YANGCH.hex[bitPos >> 2], 16);
+        if ((hexChar >> (3 - (bitPos & 3))) & 1) {
+          ctx.fillRect(x + q + c * modulePx, y + q + r * modulePx, modulePx, modulePx);
+        }
+      }
+    }
+  }
   function wrapText(ctx, text, maxWidth) {
     const lines = []; let line = '';
     for (const ch of String(text)) {
@@ -354,10 +415,14 @@
     const lines = wrapText(ctx, '「' + quote + '」', 660);
     ctx.fillStyle = '#ffd9a0'; ctx.textAlign = 'left';
     lines.slice(0, 2).forEach((ln, i) => ctx.fillText(ln, 115, y + i * 42));
-    // 底部醒目域名条(N5:扫码级可读入口;真二维码待 N5.1)
-    ctx.fillStyle = '#e8b04b'; ctx.fillRect(0, 1100, 900, 100);
-    center('情侣小剧场 · 微信搜「双人戏精」', 1135, 'bold 26px "Microsoft YaHei", sans-serif', '#241a42');
-    center('yangch.website', 1172, 'bold 34px "Microsoft YaHei", sans-serif', '#241a42');
+    // 底部醒目域名条+真二维码(N5.1:扫码即玩,矩阵内嵌)
+    ctx.fillStyle = '#e8b04b'; ctx.fillRect(0, 1084, 900, 116);
+    drawQr(ctx, 40, 1092, 3, 8); // 25*3=75 模块 + 静区 → 白框 91px
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 26px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#241a42';
+    ctx.fillText('情侣小剧场 · 扫码即玩', 560, 1132);
+    ctx.font = 'bold 34px "Microsoft YaHei", sans-serif';
+    ctx.fillText('yangch.website', 560, 1174);
     const url = cv.toDataURL('image/png');
     const slot = $('#report-slot'); if (!slot) return;
     slot.innerHTML = `<img class="report-img" alt="今晚战报" src="${url}">
@@ -516,7 +581,11 @@
     center('这是 TA 递给你的台阶。', 644, '26px "Microsoft YaHei", sans-serif', '#d8cfef');
     center('接不接，都不追问。', 730, 'bold 30px "Microsoft YaHei", sans-serif', '#ffd9a0');
     center('接住它，或者晚点说，都可以。', 776, '24px "Microsoft YaHei", sans-serif', '#b3a6d6');
-    center('双人戏精 · 一台手机的小剧场', 930, '20px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    // 右下角小二维码(N5.1:收到卡的人扫码就能进)
+    drawQr(ctx, 618, 895, 2, 5); // 25*2=50 + 静区10 → 白框70,右缘 688<726 边框内
+    ctx.textAlign = 'left';
+    ctx.font = '18px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#b3a6d6';
+    ctx.fillText('双人戏精 · 一台手机的小剧场', 60, 940);
     const url = cv.toDataURL('image/png');
     const slot = $('#stepcard-slot'); if (!slot) return;
     slot.innerHTML = `<img class="report-img" alt="台阶卡" src="${url}">
@@ -530,6 +599,15 @@
   function renderTreasure() {
     $('#view-treasure').innerHTML = `
       <h2 class="vt">🎁 百宝箱 <span class="count">没事想一起做点什么时，来翻</span></h2>
+      <div class="toc-row">
+        <button data-toc="things-slot">🗓 小事清单</button>
+        <button data-toc="cap-slot">⏳ 时间胶囊</button>
+        <button data-toc="pool-slot">🎴 卡池</button>
+        <button data-toc="log-slot">📜 记录</button>
+        <button data-toc="cloud-slot">🔗 同步</button>
+        <button data-toc="backup-slot">📦 备份</button>
+        <button data-toc="set-slot">⚙️ 设置</button>
+      </div>
       <div id="streak-slot"></div>
       <div id="things-slot"></div>
       <div id="cap-slot"></div>
@@ -538,6 +616,10 @@
       <div id="cloud-slot"></div>
       <div id="backup-slot"></div>
       <div id="set-slot"></div>`;
+    document.querySelectorAll('.toc-row button').forEach(b => b.addEventListener('click', () => {
+      const el = document.getElementById(b.dataset.toc);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
     renderStreak();
     renderThings();
     if (window.DramaCapsules) window.DramaCapsules.render('#cap-slot', profile());
@@ -745,9 +827,16 @@
   /* ---------- 📦 备份与恢复(v4.3:数据主权在用户手里——零服务器、零账号,恢复码=全部数据+绑定钥匙) ---------- */
   function renderBackupCard() {
     const slot = $('#backup-slot'); if (!slot) return;
+    // v4.5 温和备份提醒:数据有分量(≥10条记录或≥3封信)且距上次备份>7天 → 标题旁提示一句。不弹窗不强制,导出即静默。
+    const lb = jget('cd.lastBackupTs', 0);
+    const heavy = logAll().length >= 10 || jget('cd.praise', []).length >= 10 || jget('cd.capsules', []).length >= 3;
+    const daysSince = lb ? Math.floor((Date.now() - lb) / 86400000) : null;
+    const nudge = heavy && (daysSince === null || daysSince >= 7)
+      ? '<p class="hint gold" style="margin:2px 0 8px">🕘 ' + (daysSince === null ? '还没备份过' : '上次备份是 ' + daysSince + ' 天前') + '——花 10 秒存一份恢复码，换机不丢回忆。</p>' : '';
     slot.innerHTML = `
       <div class="card">
       <h3>📦 备份与恢复 <span class="count">数据只存本机——换设备前先备份</span></h3>
+      ${nudge}
       <p class="hint">导出的恢复码包含<b>全部数据与绑定钥匙</b>——像保存密码一样把它存进微信收藏/备忘录，不要发给他人。</p>
       <div class="draw-bar"><button class="suit-btn" id="bk-export">📤 导出恢复码</button></div>
       <div id="bk-out"></div>
@@ -765,6 +854,7 @@
       const k = localStorage.key(i);
       if (k && k.startsWith('cd.')) data[k] = localStorage.getItem(k);
     }
+    jset('cd.lastBackupTs', Date.now()); // v4.5:记录本次备份,提醒静默 7 天
     const payload = { app: 'couple-drama', version: 1, exported: new Date().toISOString(), data };
     const text = JSON.stringify(payload);
     const out = $('#bk-out'); if (!out) return;
@@ -879,6 +969,12 @@
     });
     try { checkAchievements(); } catch (e) { console.error(e); }
     if (window.CloudSync && window.CloudSync.isBound()) window.CloudSync.startAuto(30, handleRemoteEvents); // v4.2 绑定后自动拉远端台阶
+    if (!jget('cd.onboarded', false)) showOnboarding(); // v4.5 首次引导
+    // v4.5 跨午夜检测:页面开着过零点/手机切回前台时自动刷新当日数据(QA 遗留项)
+    let lastDay = today();
+    const dayFlip = () => { if (today() !== lastDay) { lastDay = today(); renderAll(); switchTab(curTab); toast('🌅 新的一天——场次和免战牌已刷新。'); } };
+    setInterval(dayFlip, 60000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) dayFlip(); });
     switchTab('today');
   });
 })();

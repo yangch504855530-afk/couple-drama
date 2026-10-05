@@ -46,7 +46,7 @@
       '<div class="card capsule">',
       '  <h3>⏳ 时间胶囊</h3>',
       '  <p class="hint">写一段话封存起来，选个日子才会出现。写给 TA，或写给未来的你们。</p>',
-      '  <textarea id="cap-text" class="need-input" maxlength="200" placeholder="写给未来的 TA / 未来的我们…"></textarea>',
+      '  <textarea id="cap-text" class="need-input" maxlength="200" placeholder="写给未来的 TA / 未来的我们…（最多 200 字）"></textarea>',
       '  <div class="draw-bar">',
       '    <select id="cap-unlock"><option value="7">1 周后可拆</option><option value="30">1 个月后可拆</option><option value="90">3 个月后可拆</option></select>',
       '    <select id="cap-to"><option value="her">给 ' + esc(p.her) + '</option><option value="you">给 ' + esc(p.you) + '</option><option value="us">给未来的我们</option></select>',
