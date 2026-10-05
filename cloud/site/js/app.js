@@ -341,10 +341,10 @@
     const url = cv.toDataURL('image/png');
     const slot = $('#report-slot'); if (!slot) return;
     slot.innerHTML = `<img class="report-img" alt="今晚战报" src="${url}">
-      <p class="hint">手机长按图片即可保存——发到你们的聊天框,TA 的朋友看到域名就能玩。</p>
-      <div class="draw-bar"><a class="btn dl-btn" download="双人戏精战报-${today()}.png" href="${url}">⬇️ 保存战报</a></div>`;
+      <p class="hint">发到你们的聊天框,TA 的朋友看到域名就能玩。</p>`
+      + saveHintHtml('双人戏精战报-' + today() + '.png', url);
     slot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    toast('📸 战报生成好了——存一张,发到你们的聊天框里。');
+    toast('📸 战报生成好了——长按图片就能保存或转发。');
   }
 
   /* ---------- 🪜 台阶 ---------- */
@@ -463,6 +463,16 @@
     const sc = $('#step-card'); if (sc) sc.addEventListener('click', makeStepCard);
   }
 
+  /* v4.4.1 修复:<a download>+dataURL 在微信 WebView 点击无反应、iOS Safari 不存相册。
+   * 微信/移动端一律主推"长按图片保存"(100% 可靠),下载按钮仅保留在桌面浏览器。 */
+  function saveHintHtml(fileName, url) {
+    const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    const longPress = '<p class="hint gold" style="font-size:14px">👆 <b>长按上面的图片</b> → 选「保存图片」/「发送给朋友」——微信里这样最稳。</p>';
+    if (isWeChat || isMobile) return longPress;
+    return longPress + `<div class="draw-bar" style="justify-content:center"><a class="btn dl-btn" download="${fileName}" href="${url}">⬇️ 保存到电脑</a></div>`;
+  }
+
   /* ---------- 🪜 台阶卡（v4.1：给"拉不下脸走不到面前"的场景——生成图片微信直发，零后端） ---------- */
   function makeStepCard() {
     const pending = jget('cd.repair', []).find(x => x.date === today() && x.caught === null);
@@ -486,10 +496,10 @@
     const url = cv.toDataURL('image/png');
     const slot = $('#stepcard-slot'); if (!slot) return;
     slot.innerHTML = `<img class="report-img" alt="台阶卡" src="${url}">
-      <p class="hint">把这张图发给 TA（微信直接发）——台阶就递到了。TA 回应后，在这台手机上代 TA 标记结果。</p>
-      <div class="draw-bar" style="justify-content:center"><a class="btn dl-btn" download="台阶卡-${today()}.png" href="${url}">⬇️ 保存台阶卡</a></div>`;
+      <p class="hint">把这张图发给 TA（微信直接发）——台阶就递到了。TA 回应后，在这台手机上代 TA 标记结果。</p>`
+      + saveHintHtml('台阶卡-' + today() + '.png', url);
     slot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    toast('🪜 台阶卡生成好了——发给 TA，台阶就递到了。');
+    toast('🪜 台阶卡生成好了——长按图片就能保存或直接发送。');
   }
 
   /* ---------- 🎁 百宝箱 ---------- */
