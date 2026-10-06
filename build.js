@@ -37,9 +37,9 @@ if (files.every(f => fs.existsSync(path.join(root, f)))) {
   console.log('⚠️ 内容 JSON 未就绪，使用内置 32 张兜底组');
 }
 
-/* 2) 内联（JSON 中 < 转义为 \u003c，防 HTML 解析器提前闭合 script） */
+/* 2) 内联(JSON 中 < 转义为 \u003c，防 HTML 解析器提前闭合 script) */
 let html = read('index.html');
-html = html.replace('<link rel="stylesheet" href="css/style.css">', '<style>\n' + read('css/style.css') + '\n</style>');
+html = html.replace('<link rel="stylesheet" href="css/style.css">', () => '<style>\n' + read('css/style.css') + '\n</style>'); // 函数式替换防 $ 序列
 
 const OPEN = '<' + 'script>';
 const CLOSE = '<' + '/script>';
@@ -52,9 +52,13 @@ for (const pair of scripts) {
   const file = pair[0], prefix = pair[1];
   const tag = '<script src="' + file + '"></' + 'script>';
   if (!html.includes(tag)) throw new Error('marker missing: ' + tag);
-  html = html.replace(tag, OPEN + '\n/* ===== ' + file + ' ===== */\n' + prefix + read(file) + '\n' + CLOSE);
+  // v4.8.2:必须用函数式替换——字符串替换的替换串若含 $(qrcode.js 源码里有 $&)会展开特殊序列,把原 marker 插回
+  html = html.replace(tag, () => OPEN + '\n/* ===== ' + file + ' ===== */\n' + prefix + read(file) + '\n' + CLOSE);
 }
-if (html.includes('src="js/') || html.includes('href="css/')) throw new Error('unresolved external ref');
+if (html.includes('src="js/') || html.includes('href="css/')) {
+  const ctx = html.slice(Math.max(0, html.search(/(src="js\/|href="css\/)/)) - 80, html.search(/(src="js\/|href="css\/)/) + 120);
+  throw new Error('unresolved external ref near: ...' + ctx.replace(/\n/g, '\\n') + '...');
+}
 
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
 const out = path.join(root, 'dist', 'couple-drama.html');
