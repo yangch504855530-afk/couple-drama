@@ -282,3 +282,7 @@ details.more-shows summary { font-size: 12.5px; color: var(--muted); cursor: poi
 /* K4: N8 快速隐藏入口(nav 末尾 mini"−",title=快速隐藏) */
 nav.tabs button.qh-btn { flex: 0 0 auto; padding: 8px 13px; font-weight: 700; line-height: 1.2; }
 nav.tabs button.qh-btn:active { border-color: var(--gold); color: var(--gold); }
+
+/* v4.9 台阶发送方状态卡(绑定时:只看状态,不出现操作按钮) */
+.sent-status { border-color: var(--teal); background: rgba(79,209,197,.06); }
+.sent-status h3 { color: var(--teal); }
