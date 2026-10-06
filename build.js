@@ -22,6 +22,10 @@ if (files.every(f => fs.existsSync(path.join(root, f)))) {
     if (!c.text || c.text.length < 20 || c.text.length > 120) errors.push(c.id + ' text 长度非法');
     if (![5, 15, 30, 60].includes(c.minutes)) errors.push(c.id + ' minutes 非法: ' + c.minutes);
     if (!WHERE_KEYS.includes(c.where)) errors.push(c.id + ' where 非法: ' + c.where);
+    if (!['high', 'normal'].includes(c.stamina)) errors.push(c.id + ' stamina 非法: ' + c.stamina);
+    // v4.6 胜负词黑名单：剧场语言不设输赢惩罚（译法见 docs/THEATER-WORDS.md）
+    const bad = (c.text || '').match(/(输|赢|罚|评分|猜拳|平票)/);
+    if (bad) errors.push(c.id + ' text 含胜负/惩罚词「' + bad[0] + '」（对照 docs/THEATER-WORDS.md 改写）');
   });
   const perSuit = {};
   all.forEach(c => perSuit[c.suit] = (perSuit[c.suit] || 0) + 1);

@@ -10,7 +10,11 @@
 const CODE_CHARS = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'; // 去混淆字符集(无 0/1/I/L/O)
 const ALLOWED_TYPES = ['repair', 'repair_ack', 'praise'];
 const MAX_EVENTS_PER_PUSH = 50;
-const JOIN_DAILY_LIMIT = 20;
+// join 限流双闸:①同 (IP,天,码) 每天尝试(成功+失败)≤20;②同 (IP,天) 每天失败(码错/满员/超限)≤100
+const JOIN_CODE_DAILY_LIMIT = 20;
+const JOIN_FAIL_DAILY_LIMIT = 100;
+// join 三种失败(码错/满员/超闸)统一为此响应,与"码不存在"逐字节一致,防房间码枚举预言机
+const JOIN_FAIL_RESPONSE = { error: '房间码无效或已满员' };
 const PRAISE_24H_LIMIT = 20; // v4.7 夸夸限流:单人(room_key+by)24h 含本批不超过 20 条,防一端刷屏
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), {
@@ -36,6 +40,9 @@ async function ensureSchema(env) {
   await env.DB.exec(`CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, room_key TEXT UNIQUE NOT NULL, created_at INTEGER NOT NULL)`);
   await env.DB.exec(`CREATE TABLE IF NOT EXISTS events (room_key TEXT NOT NULL, id TEXT NOT NULL, ts INTEGER NOT NULL, by TEXT NOT NULL, type TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY (room_key, id))`);
   await env.DB.exec(`CREATE TABLE IF NOT EXISTS join_rate (ip TEXT NOT NULL, day TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (ip, day))`);
+  // join 限流双闸计数表:join_code_rate 按 (ip,day,code) 计尝试;ip_fail 按 (ip,day) 计失败
+  await env.DB.exec(`CREATE TABLE IF NOT EXISTS join_code_rate (ip TEXT NOT NULL, day TEXT NOT NULL, code TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (ip, day, code))`);
+  await env.DB.exec(`CREATE TABLE IF NOT EXISTS ip_fail (ip TEXT NOT NULL, day TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (ip, day))`);
   // v4.3.1 房间成员表:一个房间最多 2 人;join 幂等(同一 member 重复加入不占新席位);leave 释放席位
   await env.DB.exec(`CREATE TABLE IF NOT EXISTS room_members (room_key TEXT NOT NULL, member TEXT NOT NULL, joined_at INTEGER NOT NULL, PRIMARY KEY (room_key, member))`);
 }
@@ -91,27 +98,43 @@ export default {
       return json({ error: 'code gen failed' }, 500);
     }
 
-    /* 加入房间:6 位码换 roomKey。规则(v4.3.1):
+    /* 加入房间:6 位码换 roomKey。规则(join 限流双闸):
      * - 直接加入邀请人的房间;同一成员重复加入幂等(不占新席位、不报错)
-     * - 房间上限 2 人:满员且来者不是成员 → 明确拒绝
-     * - join 有 IP 限流防猜解 */
+     * - 闸① 同一 (IP,天,码) 每天尝试 ≤20 次(成功+失败都计);闸② 同一 (IP,天) 失败(码错/满员/超闸)≤100 次
+     * - 码错/满员/超任一闸 → 统一同一 404 响应,防枚举预言机;创建房间不计入 join 计数 */
     if (url.pathname === '/room/join' && request.method === 'POST') {
       const body = await request.json().catch(() => ({}));
       if (!isCode(body.code)) return json({ error: '房间码格式不对' }, 400);
       if (!isMemberId(body.me)) return json({ error: '缺少身份标识' }, 400);
       const day = new Date().toISOString().slice(0, 10);
-      const rate = await env.DB.prepare(
-        'INSERT INTO join_rate (ip, day, count) VALUES (?, ?, 1) ON CONFLICT (ip, day) DO UPDATE SET count = count + 1 RETURNING count'
-      ).bind(ip, day).first();
-      if (rate && rate.count > JOIN_DAILY_LIMIT) return json({ error: '尝试太多次了，明天再来' }, 429);
-      const room = await env.DB.prepare('SELECT room_key FROM rooms WHERE code = ?').bind(body.code.toUpperCase()).first();
-      if (!room) return json({ error: '房间码不存在——让 TA 再看一眼' }, 404);
+      const code = body.code.toUpperCase(); // isCode 仅放行大写,归一属防御性兜底
+      const recordFail = () => env.DB.prepare(
+        'INSERT INTO ip_fail (ip, day, count) VALUES (?, ?, 1) ON CONFLICT (ip, day) DO UPDATE SET count = count + 1'
+      ).bind(ip, day).run();
+      // 闸②:当日已失败次数预检(失败计数只增于失败,成功 join 不计)
+      const failRow = await env.DB.prepare('SELECT count FROM ip_fail WHERE ip = ? AND day = ?').bind(ip, day).first();
+      // 闸①:(IP,天,码) 原子计数,成功+失败都计
+      const codeRate = await env.DB.prepare(
+        'INSERT INTO join_code_rate (ip, day, code, count) VALUES (?, ?, ?, 1) ON CONFLICT (ip, day, code) DO UPDATE SET count = count + 1 RETURNING count'
+      ).bind(ip, day, code).first();
+      if ((failRow && failRow.count >= JOIN_FAIL_DAILY_LIMIT) || (codeRate && codeRate.count > JOIN_CODE_DAILY_LIMIT)) {
+        await recordFail(); // 超闸本身亦计一次失败
+        return json(JOIN_FAIL_RESPONSE, 404);
+      }
+      const room = await env.DB.prepare('SELECT room_key FROM rooms WHERE code = ?').bind(code).first();
+      if (!room) {
+        await recordFail();
+        return json(JOIN_FAIL_RESPONSE, 404);
+      }
       const already = await env.DB.prepare('SELECT 1 AS x FROM room_members WHERE room_key = ? AND member = ?')
         .bind(room.room_key, body.me).first();
       if (!already) {
         const cnt = await env.DB.prepare('SELECT COUNT(*) AS c FROM room_members WHERE room_key = ?')
           .bind(room.room_key).first();
-        if (cnt && cnt.c >= ROOM_CAPACITY) return json({ error: '房间已满——每个小剧场只属于两个人' }, 403);
+        if (cnt && cnt.c >= ROOM_CAPACITY) {
+          await recordFail();
+          return json(JOIN_FAIL_RESPONSE, 404); // 满员与码错同响应,防枚举
+        }
         await env.DB.prepare('INSERT OR IGNORE INTO room_members (room_key, member, joined_at) VALUES (?, ?, ?)')
           .bind(room.room_key, body.me, Date.now()).run();
       }

@@ -20,21 +20,28 @@
     };
   }
 
+  // v4.6 体力过滤：opts.noStamina=true 时滤掉高体力卡（stamina==='high'）。
+  // 不传 opts=不过滤；旧数据无 stamina 字段也不会被滤（undefined !== 'high'），向后兼容。
+  function filterStamina(cards, opts) {
+    return (opts && opts.noStamina) ? cards.filter(c => c.stamina !== 'high') : cards;
+  }
+
   // 每日主线(温柔戏) + 支线(整活戏)，同日期全设备一致
-  function pickDaily(cards, dateStr, energy) {
+  function pickDaily(cards, dateStr, energy, opts) {
     const maxMin = energy === 'low' ? 15 : Infinity; // 低迷日只出轻场
+    const src = filterStamina(cards, opts);
     const rnd = mulberry32(hashDate(dateStr));
-    let gentle = cards.filter(c => c.suit === 'gentle' && c.minutes <= maxMin);
-    let fun = cards.filter(c => c.suit === 'fun' && c.minutes <= maxMin);
-    if (!gentle.length) gentle = cards.filter(c => c.suit === 'gentle');
-    if (!fun.length) fun = cards.filter(c => c.suit === 'fun');
+    let gentle = src.filter(c => c.suit === 'gentle' && c.minutes <= maxMin);
+    let fun = src.filter(c => c.suit === 'fun' && c.minutes <= maxMin);
+    if (!gentle.length) gentle = src.filter(c => c.suit === 'gentle');
+    if (!fun.length) fun = src.filter(c => c.suit === 'fun');
     if (!gentle.length || !fun.length) return { main: null, side: null };
     return { main: gentle[Math.floor(rnd() * gentle.length)], side: fun[Math.floor(rnd() * fun.length)] };
   }
 
-  // 花色内抽签（排除已抽），耗尽返回 null
-  function drawFromSuit(cards, suit, excludeIds, rnd) {
-    const pool = cards.filter(c => (!suit || c.suit === suit) && !(excludeIds || []).includes(c.id));
+  // 花色内抽签（排除已抽），耗尽返回 null；opts.noStamina 同样生效
+  function drawFromSuit(cards, suit, excludeIds, rnd, opts) {
+    const pool = filterStamina(cards, opts).filter(c => (!suit || c.suit === suit) && !(excludeIds || []).includes(c.id));
     if (!pool.length) return null;
     return pool[Math.floor((typeof rnd === 'function' ? rnd() : Math.random()) * pool.length)];
   }

@@ -325,8 +325,8 @@
       return `<span class="${cls}" title="${key}"></span>`;
     }).join('');
     const pending = jget('cd.repair', []).find(x => x.date === today() && x.caught === null);
-    // P1-9:今日已有演出时 dueLine 收敛为一句,不再叠加节拍/首演文案(T6-2:勾场/抽卡演完/剧本杀青任一都算"已开演",不只看 cd.log)
-    const playedToday = todayLog.length > 0 || d.mainDone || d.sideDone || (d.drawn && d.drawn.length > 0);
+    // P1-9:今日已有演出时 dueLine 收敛为一句,不再叠加节拍/首演文案。N4 删伪状态:抽卡不算开演,只有勾选(mainDone/sideDone)或演完入账(todayLog)才算
+    const playedToday = todayLog.length > 0 || d.mainDone || d.sideDone;
     const dueLine = playedToday ? '✅ 今日已开演——想再加一场随意，明天见。' : (st.lastDone === null ? '🎬 首演随时开始。' : (() => {
       const due = E.daysUntilDue(st.lastDone, today(), cadence());
       return due <= 0 ? '✨ 今天正好该演了——一张卡，一个夜晚。'
@@ -525,6 +525,7 @@
     const seed = PRAISE_SEEDS[Math.floor(Math.random() * PRAISE_SEEDS.length)];
     $('#praise-target').innerHTML = '给 <b>' + esc(profile()[to]) + '</b> 存一句夸夸（一句就够，不许带"但是"）<br>灵感：' + esc(seed) + '？';
     const ta = $('#praise-text'); ta.value = '';
+    const stale = form.querySelector('.praise-err'); if (stale) stale.remove(); // N2:重开表单不带上一条的残留红字
     form.dataset.from = from; form.dataset.to = to;
     setTimeout(() => ta.focus(), 50);
     form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -535,8 +536,13 @@
     const text = (ta.value || '').trim();
     if (!text) { toast('先写一句——空着存不了。', true); return; }
     if (/但是|可是|不过/.test(text)) {
+      // N2:除 toast 外,在 #praise-text 下方插入/更新常驻内联红字;输入保留不清空,改完可直接重存
+      let err = form.querySelector('.praise-err');
+      if (!err) { err = document.createElement('div'); err.className = 'praise-err'; ta.insertAdjacentElement('afterend', err); }
+      err.textContent = '❌ 夸夸里出现"但是/可是/不过"，改一改再存';
       toast('❌ 这句话里有"但是"——夸夸就纯粹一点，改一改再存？', true); return;
     }
+    const savedErr = form.querySelector('.praise-err'); if (savedErr) savedErr.remove(); // N2:正常保存清除红字
     const arr = jget('cd.praise', []);
     arr.unshift({ ts: Date.now(), date: today(), from, to, text: text.slice(0, 60) });
     jset('cd.praise', arr.slice(0, 100));
@@ -579,6 +585,27 @@
     if (line) lines.push(line);
     return lines;
   }
+  /* N1 内容层隐私:CP 昵称——由两人名字确定性派生,战报等分享图不再携带实名。
+   * 规则:复用 cleanName 清洗 → 剔"阿/小/老/大"昵称前缀 → 从后往前取首个可读字(CJK/假名/谚文/拉丁/数字,跳过 emoji 与符号)为各自核心字 → 拼成「你的核心字+TA核心字+" CP"」。
+   * 边界:任一侧无可读字(空名/纯 emoji/纯符号)或两侧核心字相同(同名) → 兜底「小剧场CP」,绝不抛错。 */
+  function cpNick(you, her) {
+    const readChar = ch => {
+      const cp = ch.codePointAt(0);
+      return (cp >= 0x30 && cp <= 0x39) || (cp >= 0x41 && cp <= 0x5A) || (cp >= 0x61 && cp <= 0x7A) // 数字/拉丁字母
+        || (cp >= 0xC0 && cp <= 0x24F)                                                              // 拉丁扩展(带调字母/拼音)
+        || (cp >= 0x3040 && cp <= 0x30FF) || (cp >= 0xAC00 && cp <= 0xD7AF)                         // 假名/谚文
+        || (cp >= 0x4E00 && cp <= 0x9FFF);                                                          // CJK 统一汉字
+    };
+    const core = name => {
+      const s = cleanName(name).replace(/^[阿小老大]+/, '');
+      let last = '';
+      for (const ch of s) if (readChar(ch)) last = ch; // for...of 按码点走,emoji 整体跳过不炸
+      return last;
+    };
+    const a = core(you), b = core(her);
+    if (!a || !b || a === b) return '小剧场CP';
+    return a + b + ' CP';
+  }
   function makeReport() {
     const p = profile();
     const todayLog = logAll().filter(x => x.date === today());
@@ -593,8 +620,9 @@
     const center = (t, y, font, color) => { ctx.font = font; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(t, 450, y); };
     // 梗图式大标题
     const mainCount = todayLog.length;
+    const cp = cpNick(p.you, p.her); // N1 隐私:出图用派生 CP 昵称,实名不上图
     center('🎭 今晚开演 ' + mainCount + ' 场', 150, 'bold 60px "Microsoft YaHei", sans-serif', '#e8b04b');
-    center(p.you + ' × ' + p.her + ' ｜ ' + today(), 205, '26px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    center(cp + ' ｜ ' + today(), 205, '26px "Microsoft YaHei", sans-serif', '#b3a6d6');
     ctx.strokeStyle = 'rgba(232,176,75,.35)'; ctx.beginPath(); ctx.moveTo(120, 240); ctx.lineTo(780, 240); ctx.stroke();
     // 大表情 + 戏码名(梗图视觉核心)
     let y = 330;
@@ -606,18 +634,15 @@
       center(title, y + 130, 'bold 40px "Microsoft YaHei", sans-serif', '#f2ecff');
       y += 170;
     });
-    // 今晚金句(引用块)
-    const praises = jget('cd.praise', []).filter(x => x.date === today());
-    const quote = (todayLog.find(x => x.note) || {}).note || (praises[0] || {}).text || '演砸了也算节目效果,我们笑场了。';
+    // N1 隐私:金句/夸夸原文不上图(仍存本地存折)——引用块改固定钩子
     y = Math.max(y + 20, 950);
     ctx.fillStyle = 'rgba(232,176,75,.08)';
     ctx.fillRect(90, y - 40, 720, 110);
     ctx.strokeStyle = '#e8b04b'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(90, y - 40); ctx.lineTo(90, y + 70); ctx.stroke();
     ctx.font = 'bold 30px "Microsoft YaHei", sans-serif';
-    const lines = wrapText(ctx, '「' + quote + '」', 660);
     ctx.fillStyle = '#ffd9a0'; ctx.textAlign = 'left';
-    lines.slice(0, 2).forEach((ln, i) => ctx.fillText(ln, 115, y + i * 42));
+    ctx.fillText('「TA 有句悄悄话等你来看 👀」', 115, y);
     // 底部醒目域名条+真二维码(N5.1:扫码即玩,矩阵内嵌)
     ctx.fillStyle = '#e8b04b'; ctx.fillRect(0, 1084, 900, 116);
     drawQr(ctx, 40, 1092, 3, 8); // 25*3=75 模块 + 静区 → 白框 91px
@@ -1190,9 +1215,51 @@
 
   const RENDERERS = { today: renderToday, ladder: renderLadder, treasure: renderTreasure };
 
+  /* ---------- N8 快速隐藏(时间盒半天):一键把整页换成中性"随手记"白底笔记,防旁人偷看 ---------- */
+  let qhBackup = null;            // 原 body.innerHTML 备份(仅内存态——刷新即还原,天然逃生门)
+  let qhClicks = 0, qhClickT = null;
+  function memoPageHtml() {
+    return `<div style="min-height:100vh;background:#fff;color:#333;font-family:'Microsoft YaHei','PingFang SC',system-ui,sans-serif;box-sizing:border-box;padding:46px 20px 64px;">
+      <div style="max-width:680px;margin:0 auto;">
+        <h2 style="font-size:16px;font-weight:600;margin:0 0 12px;">随手记</h2>
+        <div style="height:1px;background:#e8e8e8;margin-bottom:16px;"></div>
+        <div contenteditable="true" spellcheck="false" style="min-height:62vh;font-size:14px;line-height:1.9;outline:none;"></div>
+      </div>
+      <div id="qh-dot" style="position:fixed;left:0;right:0;bottom:4px;text-align:center;font-size:13px;color:#f5f5f5;user-select:none;">·</div>
+    </div>`;
+  }
+  function quickHide() {
+    if (qhBackup) return; // 已隐藏时幂等,避免把备忘录页当原页备份
+    qhBackup = document.body.innerHTML;
+    clearTimeout(toastTimer);
+    if (window.CloudSync && window.CloudSync.stopAuto) { try { window.CloudSync.stopAuto(); } catch (e) { /* 隐藏期间不再轮询,防远端事件往备忘录页上渲染/弹 toast */ } }
+    document.body.innerHTML = memoPageHtml();
+    const dot = document.getElementById('qh-dot');
+    if (dot) dot.addEventListener('click', () => {
+      clearTimeout(qhClickT);
+      if (++qhClicks >= 5) { quickRestore(); return; }
+      qhClickT = setTimeout(() => { qhClicks = 0; }, 1500); // 1.5s 内连点才累计,松了重新数
+    });
+  }
+  function quickRestore() {
+    qhClicks = 0; clearTimeout(qhClickT);
+    if (qhBackup) document.body.innerHTML = qhBackup; // 先写回备份
+    qhBackup = null;
+    location.reload(); // 再整页重载:所有渲染器/事件监听从入口完整重建,比手动重挂监听可靠
+  }
+  window.quickHide = quickHide;
+
   document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('nav.tabs button').forEach(b =>
+    document.querySelectorAll('nav.tabs button[data-tab]').forEach(b =>
       b.addEventListener('click', () => switchTab(b.dataset.tab)));
+    const qhBtn = document.getElementById('qh-btn');
+    if (qhBtn) qhBtn.addEventListener('click', quickHide); // N8 入口一:nav 末尾"−"按钮
+    let escLast = 0; // N8 入口二:Escape 连按两次(800ms 内)
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      const now = Date.now();
+      if (now - escLast < 800) { escLast = 0; quickHide(); } else escLast = now;
+    });
     ['today', 'ladder', 'treasure'].forEach(name => {
       try { RENDERERS[name](); } catch (e) { console.error(e); toast('⚠️ ' + name + ' 页渲染出错：' + esc(e.message), true); }
     });
@@ -1201,7 +1268,7 @@
     if (!maybeJoinFromHash() && !jget('cd.onboarded', false)) showOnboarding(); // v4.6:扫码入座优先,否则三幕式引导
     // v4.5 跨午夜检测:页面开着过零点/手机切回前台时自动刷新当日数据(QA 遗留项)
     let lastDay = today();
-    const dayFlip = () => { if (today() !== lastDay) { lastDay = today(); renderAll(); switchTab(curTab); toast('🌅 新的一天——场次和免战牌已刷新。'); } };
+    const dayFlip = () => { if (qhBackup) return; if (today() !== lastDay) { lastDay = today(); renderAll(); switchTab(curTab); toast('🌅 新的一天——场次和免战牌已刷新。'); } }; // N8:隐藏期间视图已换,跳过重渲染(恢复走 reload)
     setInterval(dayFlip, 60000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) dayFlip(); });
     switchTab('today');

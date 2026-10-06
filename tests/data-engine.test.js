@@ -36,7 +36,18 @@ t('编剧卡组（若已合并）：96 张、8×12、无重复', () => {
     assert.ok(['any', 'home', 'out', 'road'].includes(c.where), c.id);
     assert.ok(c.title.length <= 14, c.id + ' title 超长');
     assert.ok(c.text.length >= 20 && c.text.length <= 120, c.id + ' text 长度');
+    assert.ok(['high', 'normal'].includes(c.stamina), c.id + ' stamina 非法');
   });
+  const highs = all.filter(c => c.stamina === 'high').length;
+  assert.ok(highs >= 5 && highs <= 12, '高体力卡 ' + highs + ' 张（应 5-12）');
+});
+t('v4.6 胜负词黑名单：96 卡 text 无 输/赢/罚/评分/猜拳/平票（对照 docs/THEATER-WORDS.md）', () => {
+  const f1 = path.join(__dirname, '..', 'docs', 'content', 'cards-travel.json');
+  const f2 = path.join(__dirname, '..', 'docs', 'content', 'cards-life.json');
+  const BAD = /(输|赢|罚|评分|猜拳|平票)/;
+  const all = JSON.parse(fs.readFileSync(f1, 'utf8')).concat(JSON.parse(fs.readFileSync(f2, 'utf8')));
+  const hits = all.filter(c => BAD.test(c.text)).map(c => c.id);
+  assert.deepEqual(hits, [], '命中禁词: ' + hits.join(','));
 });
 t('8 角色 / 6 需求（校园版）/ 13 成就，字段完整', () => {
   assert.equal(D.ROLES.length, 8);
@@ -74,6 +85,26 @@ t('drawFromSuit 花色为空=全池抽（修复盲评C严重bug）', () => {
   assert.ok(got && D.SUITS[got.suit]);
   const suits = new Set(Array.from({ length: 30 }, () => E.drawFromSuit(D.CARDS, null, []).suit));
   assert.ok(suits.size >= 4, '全池应覆盖多花色，实际 ' + suits.size);
+});
+t('v4.6 体力过滤：noStamina 滤高体力卡；旧调用/旧数据不受影响', () => {
+  const mk = (id, suit, minutes, stamina) => ({ id, suit, minutes, stamina, title: 't', text: 'x'.repeat(20), where: 'any' });
+  const deck = [];
+  for (let i = 0; i < 12; i++) deck.push(mk('g' + i, 'gentle', 30, i < 3 ? 'high' : 'normal'));
+  for (let i = 0; i < 12; i++) deck.push(mk('f' + i, 'fun', 30, i < 3 ? 'high' : 'normal'));
+  for (let k = 1; k <= 7; k++) {
+    const r = E.pickDaily(deck, '2026-10-0' + k, null, { noStamina: true });
+    assert.ok(r.main && r.side, '过滤后池不应为空');
+    assert.ok(r.main.stamina !== 'high' && r.side.stamina !== 'high', 'noStamina 漏出高体力卡');
+  }
+  const a = E.pickDaily(deck, '2026-10-05'), b = E.pickDaily(deck, '2026-10-05', null, {});
+  assert.equal(a.main.id, b.main.id, '不传 opts/空 opts = 不过滤');
+  for (let i = 0; i < 20; i++) {
+    const c = E.drawFromSuit(deck, 'gentle', [], null, { noStamina: true });
+    assert.ok(c && c.stamina !== 'high', 'drawFromSuit noStamina 漏出高体力卡');
+  }
+  const legacy = [mk('x', 'gentle', 30, undefined), mk('y', 'fun', 30, undefined)];
+  const r2 = E.pickDaily(legacy, '2026-10-05', null, { noStamina: true });
+  assert.equal(r2.main.id, 'x', '无 stamina 字段的旧数据不应被滤掉');
 });
 t('computeStreak 连击：今天断签不毁昨天，连续日正确累计', () => {
   const today = '2026-10-05';
