@@ -232,8 +232,8 @@
     ctx.strokeRect(150, 660, 450, 120); ctx.setLineDash([]);
     center(code, 740, 'bold 72px Georgia, serif', '#e8b04b');
     center('（在剧场里输入这串码，也能入座）', 815, '20px "Microsoft YaHei", sans-serif', '#b3a6d6');
-    // 固定域名二维码
-    drawQr(ctx, 285, 860, 6, 10); // 25*6=150+静区20 → 190 宽,居中 285..475
+    // 动态二维码(v4.8.2):扫出即带房间上下文 #r=码,TA 入座免输码;库缺失回退固定码
+    drawQrText(ctx, 285, 860, 6, 10, 'https://yangch.website/#r=' + code);
     center('yangch.website', 1090, 'bold 30px Georgia, serif', '#e8b04b');
     center('台阶直达 TA 手机 · 演砸了也是节目效果', 1135, '20px "Microsoft YaHei", sans-serif', '#b3a6d6');
     const url = cv.toDataURL('image/png');
@@ -573,6 +573,23 @@
         if ((hexChar >> (3 - (bitPos & 3))) & 1) {
           ctx.fillRect(x + q + c * modulePx, y + q + r * modulePx, modulePx, modulePx);
         }
+      }
+    }
+  }
+  /* v4.8.2 动态二维码(qrcode-generator 库):邀请函编码 #r=房间码 上下文;库缺失回退固定码 */
+  function drawQrText(ctx, x, y, modulePx, quietPx, text) {
+    const q = quietPx === undefined ? Math.ceil(modulePx * 2) : quietPx;
+    if (typeof window.qrcode !== 'function') { drawQr(ctx, x, y, modulePx, q); return; }
+    const qr = window.qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    const s = qr.getModuleCount();
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x, y, s * modulePx + q * 2, s * modulePx + q * 2);
+    ctx.fillStyle = '#17102a';
+    for (let r = 0; r < s; r++) {
+      for (let c = 0; c < s; c++) {
+        if (qr.isDark(r, c)) ctx.fillRect(x + q + c * modulePx, y + q + r * modulePx, modulePx, modulePx);
       }
     }
   }
