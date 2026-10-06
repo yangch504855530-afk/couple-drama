@@ -7,7 +7,293 @@
 <meta name="description" content="双人戏精同框版 — 一台手机打开就玩的情侣小剧场：抽一张卡演一场、吵架递台阶、睡前互夸存战报。免安装、随开随玩。">
 <title>双人戏精 · 同框版 · 一台手机的小剧场</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎭</text></svg>">
-<link rel="stylesheet" href="css/style.css">
+<style>
+/* 《双人戏精》深夜剧场风 */
+:root {
+  --bg: #17102a; --bg2: #1f1538; --card: #241a42; --card2: #2c2050;
+  --ink: #f2ecff; --muted: #b3a6d6; --line: #3d2f66;
+  --gold: #e8b04b; --red: #e05555; --teal: #4fd1c5; --pink: #e8a0a0;
+  --serif: Georgia, "Noto Serif SC", "Songti SC", "STSong", serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  background: radial-gradient(1200px 600px at 50% -100px, #2a1c4d 0%, var(--bg) 60%);
+  color: var(--ink); line-height: 1.65; min-height: 100vh; }
+
+header.site { text-align: center; padding: 26px 16px 14px; position: relative; overflow: hidden; }
+/* v4.6 品牌记忆点:交叉双追光(金+暖粉两束半透明光) */
+header.site::before, header.site::after, .onboard-card::before, .onboard-card::after {
+  content: ''; position: absolute; pointer-events: none; border-radius: 50%; }
+header.site::before { top: -120px; left: 6%; width: 260px; height: 300px;
+  background: radial-gradient(closest-side, rgba(232,176,75,.16), transparent 72%); }
+header.site::after { top: -100px; right: 4%; width: 230px; height: 280px;
+  background: radial-gradient(closest-side, rgba(232,160,160,.12), transparent 72%); }
+header.site h1 { font-family: var(--serif); font-size: 28px; letter-spacing: 5px; color: var(--gold); text-shadow: 0 2px 12px rgba(232,176,75,.35); }
+header.site .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+header.site .rule { margin-top: 10px; display: inline-block; font-size: 12px; color: #ffd9a0;
+  background: rgba(232,176,75,.12); border: 1px dashed rgba(232,176,75,.45); border-radius: 999px; padding: 4px 14px; }
+
+nav.tabs { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px;
+  background: rgba(23,16,42,.92); backdrop-filter: blur(8px); }
+nav.tabs button { flex: 0 0 auto; border: 1px solid var(--line); background: var(--card); color: var(--muted);
+  font-size: 14px; padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+nav.tabs button.active { background: var(--gold); color: #241a42; font-weight: 800; border-color: var(--gold); }
+
+main { max-width: 760px; margin: 0 auto; padding: 16px 14px 80px; }
+section.view { display: none; }
+section.view.active { display: block; }
+.vt { font-size: 22px; margin: 8px 0 10px; color: var(--gold); font-family: var(--serif); letter-spacing: 1px; }
+.count { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+.card h3 { font-size: 17px; color: var(--ink); font-family: var(--serif); letter-spacing: 1px; margin-bottom: 10px; }
+.card h3 .count { font-family: "Microsoft YaHei", sans-serif; letter-spacing: 0; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 6px 0; }
+.hint.gold { color: #ffd9a0; }
+
+/* 今日剧场 */
+.stage-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.streak { font-size: 14px; color: #ffd9a0; background: rgba(232,176,75,.1); border: 1px solid rgba(232,176,75,.3);
+  border-radius: 999px; padding: 6px 14px; }
+.streak b { font-size: 18px; color: var(--gold); }
+.names input { width: 76px; background: var(--bg2); border: 1px solid var(--line); color: var(--ink);
+  border-radius: 10px; padding: 6px 8px; font-size: 14px; text-align: center; }
+.names .amp { color: var(--muted); margin: 0 4px; }
+.q { display: block; font-size: 14px; margin: 10px 0; line-height: 1.7; }
+.q input { vertical-align: -2px; margin-right: 8px; }
+.suit-dot { display: inline-block; font-size: 12px; color: #241a42; font-weight: 800; border-radius: 999px; padding: 2px 10px; margin-right: 6px; }
+.free-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.free-btn { border: 1px solid var(--line); background: var(--bg2); color: var(--ink); border-radius: 12px;
+  padding: 10px 14px; font-size: 13.5px; cursor: pointer; }
+.free-btn.off { opacity: .4; }
+.role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.role-card { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg2); }
+.role-head { font-weight: 800; color: var(--ink); margin-bottom: 4px; }
+.role-btn { margin-top: 8px; border: 1px solid var(--gold); background: transparent; color: var(--gold);
+  border-radius: 999px; padding: 4px 14px; cursor: pointer; font-size: 13px; font-weight: 700; }
+.cta-row { text-align: center; margin-top: 16px; }
+.btn { border: none; background: linear-gradient(135deg, #e8b04b, #d96c3f); color: #241a42; font-weight: 800;
+  font-size: 16px; border-radius: 14px; padding: 13px 26px; cursor: pointer; min-height: 48px; }
+.btn.big { width: 100%; }
+.btn:disabled { opacity: .35; cursor: not-allowed; filter: grayscale(.6); }
+
+/* v4.6 按钮三级制:suit-btn 降为描边级(金色只留给 CTA) */
+.suit-btn { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 999px;
+  padding: 8px 16px; font-size: 13.5px; cursor: pointer; font-weight: 600; }
+.suit-btn:active { border-color: var(--gold); color: var(--gold); }
+.suit-btn.on { background: var(--gold); color: #241a42; border-color: var(--gold); }
+.praise-btn { border-color: rgba(232,160,160,.55); color: var(--pink); } /* 烛光暖粉:互夸专属 */
+
+/* 卡池 */
+.draw-bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.suit-btn { border: 2px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px;
+  padding: 7px 14px; font-size: 13.5px; cursor: pointer; font-weight: 600; }
+.suit-btn.on { background: var(--gold); color: #241a42; border-color: var(--gold); }
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.filter-row select, .mini { background: var(--bg2); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 10px; padding: 8px 10px; font-size: 13.5px; }
+.mini { cursor: pointer; }
+.mini.danger { border-color: var(--red); color: var(--red); }
+.dgrid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 10px; }
+@media (min-width: 640px) { .dgrid { grid-template-columns: 1fr 1fr; } }
+.dcard { background: var(--card2); border: 1px solid var(--c, var(--line)); border-left-width: 5px;
+  border-radius: 14px; padding: 12px 14px; box-shadow: 0 4px 18px rgba(0,0,0,.25); }
+.dc-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.dc-suit { color: #241a42; font-size: 12px; font-weight: 800; border-radius: 999px; padding: 2px 10px; }
+.dc-meta { font-size: 11.5px; color: var(--muted); }
+.dcard h4 { font-size: 15.5px; margin-bottom: 4px; }
+.dcard p { font-size: 13.5px; color: #d8cfef; }
+.done-btn { margin-top: 10px; border: 1px solid var(--gold); background: transparent; color: var(--gold);
+  border-radius: 999px; padding: 5px 16px; font-size: 12.5px; cursor: pointer; font-weight: 700; }
+.done-btn.did { border-color: var(--teal); color: var(--teal); cursor: default; }
+
+/* 需求条 */
+.need-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 620px) { .need-cols { grid-template-columns: 1fr; } }
+.need-col > b { display: block; color: var(--gold); margin-bottom: 6px; font-size: 15px; }
+.need-chip { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px;
+  border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; margin: 6px 0; cursor: pointer; background: var(--bg2); }
+.need-chip.lv1 { border-color: #e6c46a; background: rgba(230,196,106,.08); }
+.need-chip.lv1 b { color: #e6c46a; }
+.need-chip.lv2 { border-color: var(--red); background: rgba(224,85,85,.12); }
+.need-chip.lv2 b { color: var(--red); }
+.charge { font-size: 12.5px; color: #ffd9a0; background: rgba(232,176,75,.08); border: 1px dashed rgba(232,176,75,.4);
+  border-radius: 10px; padding: 6px 10px; margin: 4px 0 8px; }
+
+/* 成就与日志 */
+.ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.ach { border: 1px solid var(--line); border-radius: 12px; padding: 12px; text-align: center; background: var(--bg2); opacity: .45; }
+.ach.on { opacity: 1; border-color: var(--gold); box-shadow: 0 0 14px rgba(232,176,75,.15); }
+.ach b { display: block; margin: 4px 0 2px; font-size: 14px; }
+.ach span { font-size: 11.5px; color: var(--muted); }
+.timeline .titem { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 8px 0; background: var(--bg2); }
+.tdate { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.note { width: 100%; background: var(--card); border: 1px solid var(--line); color: var(--ink);
+  border-radius: 10px; padding: 7px 10px; font-size: 13px; }
+
+#toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+  max-width: 540px; width: calc(100% - 32px); background: #34255e; color: #fff; font-size: 13.5px;
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: all .3s; z-index: 999; line-height: 1.6; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.err { background: #6b1f34; max-height: 40vh; overflow-y: auto; }
+
+footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px 16px 34px; }
+@media print { header.site, nav.tabs, footer, .btn, .free-btn, .done-btn { display: none !important; } body { background: #fff; color: #000; } }
+
+/* 盲评A 修复 */
+.suit-btn .remain { font-size: 11px; opacity: .75; font-weight: 400; }
+.need-main { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.need-low { font-size: 11.5px; color: var(--muted); margin-top: 2px; width: 100%; }
+
+.ach-hint { display: block; font-size: 11px; color: #ffd9a0; margin: 2px 0; }
+
+/* v2：台阶/存折/电量/开演条/免检 */
+.strip { display: inline-flex; gap: 2px; margin-left: 8px; vertical-align: 1px; }
+.dot { width: 6px; height: 6px; border-radius: 2px; background: var(--line); display: inline-block; }
+.dot.done { background: var(--gold); }
+.dot.rest { background: var(--teal); }
+.seg { display: flex; gap: 8px; }
+.seg-btn { flex: 1; border: 1px solid var(--line); background: var(--bg2); color: var(--muted);
+  border-radius: 12px; padding: 10px 8px; cursor: pointer; font-size: 14px; }
+.seg-btn.on { border-color: var(--gold); color: var(--gold); background: rgba(232,176,75,.08); font-weight: 700; }
+.repair-pending { border: 1px dashed var(--gold); border-radius: 12px; padding: 12px; text-align: center; }
+.rp-text { font-size: 16px; margin-bottom: 10px; }
+.rp-btns { display: flex; gap: 10px; justify-content: center; }
+.rp-catch { padding: 8px 22px; }
+.praise-list { margin-top: 8px; }
+.praise-item { font-size: 13px; color: #ffd9a0; border-left: 3px solid var(--gold); padding: 4px 10px; margin: 5px 0; background: rgba(232,176,75,.06); border-radius: 0 8px 8px 0; }
+.lock-btn { border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 11px;
+  border-radius: 999px; padding: 2px 10px; cursor: pointer; margin-left: 8px; vertical-align: 2px; }
+.lock-btn.on { border-color: var(--teal); color: var(--teal); }
+.need-chip.locked { opacity: .45; }
+.rest { border-color: var(--teal); }
+.rulebox { font-size: 12.5px; color: #ffd9a0; background: rgba(232,176,75,.07); border: 1px dashed rgba(232,176,75,.35);
+  border-radius: 10px; padding: 8px 12px; margin: 8px 0; }
+
+/* v1.2 节拍 / 今日需要 */
+.need-today-col b { color: var(--gold); display: block; margin-bottom: 6px; }
+.need-input { width: 100%; background: var(--bg2); border: 1px solid var(--line); color: var(--ink);
+  border-radius: 10px; padding: 8px 10px; font-size: 13.5px; }
+.need-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.need-quick .chip { font-size: 11.5px; border: 1px solid var(--line); border-radius: 999px;
+  padding: 3px 10px; cursor: pointer; color: var(--muted); background: var(--card); }
+.need-quick .chip:hover { color: var(--gold); border-color: var(--gold); }
+.need-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 620px) { .need-grid { grid-template-columns: 1fr; } }
+.due-line b { color: var(--gold); }
+
+/* v2.0 campus */
+.love-days { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; background: linear-gradient(135deg, #2a1c4d, #241a42); border: 1px solid rgba(232,176,75,.35); }
+.ld-num b { font-size: 42px; color: var(--gold); font-weight: 800; }
+.ld-num span { color: var(--muted); margin-left: 4px; }
+.ld-set { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); flex: 1; min-width: 200px; }
+.ld-set input { background: var(--bg2); border: 1px solid var(--line); color: var(--ink); border-radius: 8px; padding: 3px 8px; font-size: 12.5px; }
+.ld-next { color: #ffd9a0; }
+.miss-btn { border: 2px solid var(--gold); background: rgba(232,176,75,.1); color: var(--gold); font-size: 14px; font-weight: 700; border-radius: 999px; padding: 10px 18px; cursor: pointer; }
+.miss-btn:active { transform: scale(.96); }
+.things-bar { height: 10px; background: var(--bg2); border-radius: 999px; overflow: hidden; margin: 8px 0; }
+.things-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), #d96c3f); border-radius: 999px; transition: width .4s; }
+.things-grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px; }
+@media (min-width: 640px) { .things-grid { grid-template-columns: 1fr 1fr; } }
+.thing { display: flex; align-items: center; gap: 8px; text-align: left; background: var(--card); border: 1px solid var(--line); color: var(--ink); border-radius: 12px; padding: 9px 12px; font-size: 13.5px; cursor: pointer; }
+.thing .tnum { font-size: 11px; color: var(--muted); font-weight: 700; }
+.thing.did { border-color: var(--teal); background: rgba(79,209,197,.07); }
+.thing.did::after { content: '✅'; margin-left: auto; }
+
+/* 回应卡 */
+.respond-card { border: 2px solid var(--gold); border-radius: 14px; padding: 12px 14px;
+  background: linear-gradient(140deg, rgba(232,176,75,.12), var(--card2) 60%); margin-top: 10px; }
+.respond-card p { font-size: 14.5px; margin: 4px 0; }
+.ack-banner { background: rgba(79,209,197,.12); border: 1px solid var(--teal); color: #b8fff5;
+  border-radius: 12px; padding: 10px 14px; font-size: 14px; margin: 8px 0; }
+
+.charge-remote { display: block; font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+
+/* v4.0 同框版 */
+.restbox { border: 1px dashed var(--teal); color: #b8fff5; border-radius: 12px; padding: 10px 14px;
+  font-size: 13.5px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ladder-tip { border-color: var(--gold); background: rgba(232,176,75,.08); }
+.ladder-tip a { color: var(--gold); }
+.report-img { width: 100%; max-width: 420px; display: block; margin: 10px auto; border-radius: 14px;
+  border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+.dl-btn { text-decoration: none; display: inline-block; font-size: 14px; padding: 9px 20px; }
+.cap { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 8px 0; background: var(--bg2); font-size: 13.5px; }
+.cap.locked { border-color: rgba(91,143,185,.6); }
+.cap.ready { border-color: var(--teal); }
+.cap.opened { opacity: .7; }
+.cap-meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+.warnbox { font-size: 12.5px; color: #ffd9a0; background: rgba(224,85,85,.1); border: 1px dashed rgba(224,85,85,.45);
+  border-radius: 10px; padding: 8px 12px; margin: 8px 0; }
+.free-btn:disabled { cursor: not-allowed; }
+
+/* v4.4 N2/N3:极简场与低配演法 */
+.quickstart { border: 2px dashed var(--teal); border-radius: 14px; padding: 14px; margin: 10px 0; background: rgba(79,209,197,.06); }
+.qs-head { font-size: 15px; color: #b8fff5; margin-bottom: 10px; }
+.qs-head b { color: var(--teal); }
+.qs-cards { display: flex; gap: 10px; flex-wrap: wrap; }
+.qs-card { flex: 1 1 140px; background: var(--card2); border: 1px solid var(--teal); color: var(--ink);
+  border-radius: 12px; padding: 12px 10px; cursor: pointer; text-align: center; }
+.qs-card b { display: block; font-size: 15px; margin-bottom: 4px; }
+.qs-card span { font-size: 11.5px; color: var(--muted); }
+.qs-card:active { transform: scale(.97); }
+.lowmode { display: inline-block; font-size: 11.5px; color: #ffd9a0; background: rgba(232,176,75,.08);
+  border: 1px dashed rgba(232,176,75,.4); border-radius: 8px; padding: 2px 10px; margin-top: 4px; }
+
+/* v4.5:首次引导 + 百宝箱锚点 */
+#onboard { position: fixed; inset: 0; z-index: 200; background: rgba(10, 6, 20, .9);
+  display: flex; align-items: center; justify-content: center; padding: 20px; }
+.onboard-card { background: var(--card); border: 1px solid var(--gold); border-radius: 20px;
+  padding: 26px 22px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 10px 50px rgba(0,0,0,.5); }
+.ob-logo { font-size: 52px; }
+.onboard-card h2 { color: var(--gold); letter-spacing: 3px; margin: 6px 0 4px; font-size: 24px; }
+.ob-sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+.ob-names { display: flex; align-items: center; gap: 8px; justify-content: center; margin: 10px 0; }
+.ob-names span { color: var(--muted); }
+.ob-names input, .ob-date input { background: var(--bg2); border: 1px solid var(--line); color: var(--ink);
+  border-radius: 10px; padding: 9px 10px; font-size: 15px; text-align: center; width: 110px; }
+.ob-date { display: block; font-size: 12.5px; color: var(--muted); margin: 8px 0 14px; }
+.ob-date input { display: block; margin: 6px auto 0; }
+.onboard-card .btn.big { margin-top: 2px; }
+.ob-skip { background: none; border: none; color: var(--muted); font-size: 13px; margin-top: 12px;
+  cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.toc-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; position: sticky; top: 52px;
+  background: rgba(23,16,42,.95); padding: 8px 0; z-index: 40; border-bottom: 1px solid var(--line); }
+.toc-row button { border: 1px solid var(--line); background: var(--card); color: var(--muted);
+  font-size: 12.5px; border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.toc-row button:active { color: var(--gold); border-color: var(--gold); }
+
+/* v4.6 三幕式引导:选台大卡/戏票/更多场次折叠 */
+.onboard-card { position: relative; overflow: hidden; }
+.onboard-card::before { top: -130px; left: 8%; width: 260px; height: 300px;
+  background: radial-gradient(closest-side, rgba(232,176,75,.16), transparent 72%); }
+.onboard-card::after { top: -110px; right: 4%; width: 230px; height: 280px;
+  background: radial-gradient(closest-side, rgba(232,160,160,.12), transparent 72%); }
+.onboard-card > * { position: relative; }
+.ob-mode { display: block; width: 100%; background: var(--bg2); border: 1px solid var(--line); color: var(--ink);
+  border-radius: 14px; padding: 14px 16px; margin: 10px 0; cursor: pointer; text-align: left; }
+.ob-mode:active { border-color: var(--gold); }
+.ob-mode b { display: block; font-size: 17px; font-family: var(--serif); letter-spacing: 1px; }
+.ob-mode span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.jt-input { background: var(--bg2); border: 1px solid var(--line); color: var(--ink); border-radius: 10px;
+  padding: 10px; font-size: 16px; text-align: center; width: 100%; margin: 8px 0 4px; }
+details.more-shows { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 6px; }
+details.more-shows summary { font-size: 12.5px; color: var(--muted); cursor: pointer; padding: 4px 0; }
+
+/* v4.6.1 三下拉日期(替代原生 date 控件,全环境一致) */
+.date3 { display: flex; gap: 6px; }
+.date3 select { flex: 1; background: var(--bg2); border: 1px solid var(--line); color: var(--ink);
+  border-radius: 10px; padding: 9px 4px; font-size: 14px; text-align: center; }
+.ob-date .date3 { margin-top: 6px; }
+
+/* K4: N2 夸夸"但是"内联红字(#praise-text 下方常驻提示,正常保存即清除) */
+.praise-err { color: var(--red); font-size: 12.5px; margin: 4px 0; }
+
+/* K4: N8 快速隐藏入口(nav 末尾 mini"−",title=快速隐藏) */
+nav.tabs button.qh-btn { flex: 0 0 auto; padding: 8px 13px; font-weight: 700; line-height: 1.2; }
+nav.tabs button.qh-btn:active { border-color: var(--gold); color: var(--gold); }
+
+</style>
 </head>
 <body>
 <header class="site">
@@ -31,10 +317,1789 @@
 
 <footer>《双人戏精》v4.8 同框版 ｜ 你的剧场，虚位以待 ｜ 演砸了也是节目效果<br><small>本游戏是情侣间的小玩具，不是关系治疗——遇到严重矛盾请找学校心理咨询中心或专业帮助。</small></footer>
 
-<script src="js/data.js"></script>
-<script src="js/engine.js"></script>
-<script src="js/capsules.js"></script>
-<script src="js/cloud-sync.js"></script>
-<script src="js/app.js"></script>
+<script>
+/* ===== js/data.js ===== */
+window.DRAMA_CARDS = [{"id":"g01","suit":"gentle","title":"日落好评榜","text":"趁天黑前找个能看日落的地方坐下，轮流对对方说：『今天你做的＿＿这件小事，我偷偷打了满分。』对方必须回：『收到，本人很得意。』说完击掌收工。","minutes":5,"where":"out","stamina":"normal"},{"id":"g02","suit":"gentle","title":"默契盲盒","text":"互相抛一个二选一：咖啡还是奶茶？山还是海？先各自把答案写在手机备忘录，再同时亮屏。三题全中的抱十秒，全没中就宣布『还不熟，继续处』。","minutes":5,"where":"any","stamina":"normal"},{"id":"g03","suit":"gentle","title":"举手发言大会","text":"谁有话想说就先举手，用三句式陈述：『我看到……我感觉……我希望……』另一个人全程只许回『嗯，我听到了』，不许解释、不许反驳、不许给建议。说完换人举一次。","minutes":15,"where":"any","stamina":"normal"},{"id":"g04","suit":"gentle","title":"时间胶囊","text":"各自给一年后的对方写一封信，内容保密，写下此刻最想说没说出口的话。写完封口或锁进加密备忘录，定一个两个人都忘不了的日子，到时一起拆开读。","minutes":30,"where":"any","stamina":"normal"},{"id":"g05","suit":"gentle","title":"手写颁奖礼","text":"各自给对方手写一张奖状，奖项必须具体，比如『最佳忍住没翻白眼奖』。写完举行仪式：念颁奖词、授奖、合影留念。笑场不叫演砸，忘写日期才算。","minutes":15,"where":"any","stamina":"normal"},{"id":"g06","suit":"gentle","title":"十秒对视赛","text":"面对面坐好，盯着对方的眼睛整整十秒，先笑场的人加演一句『你眼睛真好看』，再开演一轮。哪一轮两人都绷住了，就十指相扣收场。","minutes":5,"where":"any","stamina":"normal"},{"id":"g07","suit":"gentle","title":"表情说明书","text":"各自写下自己三张臭脸的真实含义，比如『我皱眉不是生气，是饿了』。交换后轮流读出，听的人只许说『记下了』，不许趁机提意见，不许翻任何旧账。","minutes":15,"where":"home","stamina":"normal"},{"id":"g08","suit":"gentle","title":"高光慢放","text":"闭眼回想今天和对方的一个瞬间，越具体越好，然后像导演一样讲给对方听：『当时你在……你手里拿着……』对方听完要回一句：『这一帧，我存下来了。』","minutes":15,"where":"any","stamina":"normal"},{"id":"g09","suit":"gentle","title":"问题盲盒","text":"各写五个从来没问过对方的问题，折好放进一个杯子。轮流抽一张当场回答，不许跳过，答完出题人要说：『这个答案我要记一辈子。』杯子抽空就收工。","minutes":30,"where":"any","stamina":"normal"},{"id":"g10","suit":"gentle","title":"腿上充电桩","text":"一人躺下把头枕在对方腿上，闭眼充电，枕的人负责揉头、捶肩，外加一句真心夸。五分钟后必须换人，谁都不许说『我不用』，充电桩没有拒接服务的权利。","minutes":30,"where":"home","stamina":"normal"},{"id":"g11","suit":"gentle","title":"未来商店","text":"散步逛街时把路上的东西当『未来之家』采购：『这盏灯归我们阳台』『这个锅给你』。全程只许花嘴，不许真买，收摊前各自汇报购物车，互相点评眼光。","minutes":60,"where":"out","stamina":"high"},{"id":"g12","suit":"gentle","title":"睡前三件套","text":"关大灯开小灯，靠在一起轮流说三句：今天注意到你的一件小事、谢谢你的一个瞬间、明天想一起做的一件事。说完不许各自滑手机，要抱够十秒再睡。","minutes":15,"where":"home","stamina":"normal"},{"id":"f01","suit":"fun","title":"台词复读机","text":"用对方的语气、口头禅和小动作，重演对方今天最累的一个瞬间。演完由本人验收：点头就过审，笑到拍腿就加演一场；过审当场颁发免骂金牌一枚，当日生效不退不换。","minutes":5,"where":"any","stamina":"normal"},{"id":"f02","suit":"fun","title":"故事接龙","text":"以『今天我们遇到一只会说人话的猫』开头，轮流一句接一个故事，每次只能加一句。故事编圆就圆满杀青；编崩的人要学三声猫叫，还得给猫起个名字。","minutes":5,"where":"any","stamina":"normal"},{"id":"f03","suit":"fun","title":"表情包本包","text":"打开你们的聊天记录，轮流挑一张表情包，用脸和肢体神还原，对方负责掌声点评。各自选一张自己的神还原截图当专属表情包，今晚起只发对方一人，连发三天。","minutes":5,"where":"any","stamina":"normal"},{"id":"f04","suit":"fun","title":"家庭新闻联播","text":"轮流当主播，用新闻联播腔播报今天的家庭大事，比如『本台消息：一只沙发土豆已占据客厅三小时』。另一人当特邀嘉宾一本正经点评，笑场就加夸对方一句。","minutes":15,"where":"home","stamina":"normal"},{"id":"f05","suit":"fun","title":"人类观察纪录片","text":"散步时轮流当纪录片旁白，用动物世界那种低沉声线解说对方：『一只成年人类正在寻找今天第二杯奶茶……』被解说的人不许笑，笑场就换你来当旁白。","minutes":15,"where":"out","stamina":"normal"},{"id":"f06","suit":"fun","title":"灵魂互换","text":"接下来十五分钟身份互换：你演对方，对方演你，坐姿、口头禅、翻白眼的方式都要还原。谁先绷不住笑出声，就自动接下一个彩蛋任务——替对方跑一次腿。","minutes":15,"where":"home","stamina":"normal"},{"id":"f07","suit":"fun","title":"歌词吵架大赛","text":"定一个日常话题，比如『昨晚谁没盖被子』，接下来全程只能用歌词对话，接不上或说了人话就加演一段：用京剧腔唱一句『是我错了』，对方负责掌声雷动。","minutes":15,"where":"any","stamina":"normal"},{"id":"f08","suit":"fun","title":"灾难造型师","text":"在商场或夜市各给对方挑一套『最敢穿』的搭配，试穿后走十米T台，另一人负责声情并茂解说。照片只许自己收藏当传家宝，不许发给任何第三个人。","minutes":30,"where":"out","stamina":"high"},{"id":"f09","suit":"fun","title":"无声动画片","text":"一起收拾客厅或做一顿饭，全程不许说话，只能用手势和表情沟通，谁先出声就要原地表演一段『愤怒的小鸟』。做完击掌，再互相给对方的哑剧技术打分。","minutes":30,"where":"home","stamina":"high"},{"id":"f10","suit":"fun","title":"童话乱炖","text":"随手抓三样家里的东西当道具，把你们怎么认识的事改编成童话讲出来，比如公主和骑士在便利店相遇。听的人不许纠正事实，讲的人不许脸红超过三次。","minutes":30,"where":"home","stamina":"normal"},{"id":"f11","suit":"fun","title":"老剧配音间","text":"放一部你们都看熟了的老剧，静音，两人分角色现场配音，剧情允许完全跑偏。配完一集复盘，笑场次数最多的人要当对方一天的小跟班，随叫随到不许还价。","minutes":60,"where":"home","stamina":"normal"},{"id":"f12","suit":"fun","title":"彩虹屁Battle","text":"拍腿当鼓点，轮流用说唱夸对方，一句比一句夸张，不许重复用过的词。卡壳的人加演一段：边做五个深蹲边举起想象中的茶杯敬礼：『夸不过，实在夸不过。』","minutes":15,"where":"any","stamina":"high"},{"id":"p01","suit":"photo","title":"三连拍禁令","text":"各给对方连拍三张，全程不许说『下巴收一收』之类的指导，拍完不许删。回看时各选一张设成聊天背景，再共同选出一张最丑的，命名为『传家宝』。","minutes":5,"where":"any","stamina":"normal"},{"id":"p02","suit":"photo","title":"复刻老照片","text":"翻出一张你们的旧合照，原地复刻：站位、表情、角度都要对齐。拍完新旧拼在一起，谁先笑场谁请对方一支冰淇淋🍦，笑得最久的人拥有拼图命名权。","minutes":5,"where":"any","stamina":"normal"},{"id":"p03","suit":"photo","title":"影子大片","text":"趁太阳还在，只拍两个人的影子，摆一个电影海报姿势，连拍五张选一张最像大片的。给它起个电影名，比如《高速路边的婚礼》，导演署名你们俩。","minutes":5,"where":"out","stamina":"normal"},{"id":"p04","suit":"photo","title":"命题摄影赛","text":"互相给对方出一个摄影题目，比如『孤独』『偷感很重』『人间烟火』，各拍三张交卷。评奖时只许夸不许损，冠军奖品是对方捏肩三分钟，不许拒绝。","minutes":15,"where":"out","stamina":"normal"},{"id":"p05","suit":"photo","title":"造型实验室","text":"用家里现有的帽子围巾眼镜给对方堆一个造型，越浮夸越好，互相当造型师。拍完各自选一张当一周头像，期间不许偷偷换，被抓到就触发彩蛋任务：请对方喝一杯奶茶。","minutes":15,"where":"home","stamina":"normal"},{"id":"p06","suit":"photo","title":"无声三十秒","text":"拍一部三十秒无声小电影，你们俩都是主演，分六七个镜头完成，剧情越离谱越好，比如『快递箱里爬出一个巨人』。拍完连播，谁笑场谁负责拍续集。","minutes":30,"where":"out","stamina":"normal"},{"id":"p07","suit":"photo","title":"三十年后剧照","text":"摆拍一组『三十年后的我们』：老花镜、报纸、摇椅有什么用什么。不许摆甜笑，要演出『吵了五十年架但手还牵着』的松弛感，拍完轮流给照片配旁白。","minutes":30,"where":"home","stamina":"normal"},{"id":"p08","suit":"photo","title":"表情包工厂","text":"互相抓拍对方今天最真实的三个瞬间：吃饭、发呆、刷手机。配上文字做成表情包，比如『哦』『你说得都对』。今晚聊天只许用这些表情包，谁先打字就要给对方语音配音一张。","minutes":15,"where":"any","stamina":"normal"},{"id":"p09","suit":"photo","title":"寻宝镜头师","text":"出发前各列五个摄影任务，比如『拍一张能当专辑封面的』『拍一个红色的圆』，路上互相出题限时完成。收工票选今日最佳，获奖作品当一个月壁纸。","minutes":60,"where":"out","stamina":"high"},{"id":"p10","suit":"photo","title":"背影收藏家","text":"今天只许拍对方的背影：走路的、等灯的、蹲下来看猫的。攒满五张连成一组，起个纪录片名，比如《我的爱人总在看别处》，晚上发给对方当惊喜。","minutes":15,"where":"out","stamina":"normal"},{"id":"p11","suit":"photo","title":"一盏灯大片","text":"关掉大灯只留一盏灯或手电，用影子拍一组氛围感大片：窗帘当披风，墙当幕布。一人打光一人摆姿势，拍完互换，选一张命名为《今晚我们很贵》。","minutes":30,"where":"home","stamina":"normal"},{"id":"p12","suit":"photo","title":"私藏机位交换","text":"各带对方去一个自己私藏的拍照点，可以很远也可以就在楼下，到了给对方拍一张你心中最好看的照片。不许问『行不行』，按下快门那一刻就是满分。","minutes":60,"where":"out","stamina":"high"},{"id":"r01","suit":"road","title":"出发暗号","text":"发车前发明三个今天的专属暗号：一个代表『我饿了』，一个代表『找厕所』，一个代表『快夸我』。路上这三件事只能用暗号说，谁先说破谁负责跑腿买水。","minutes":5,"where":"road","stamina":"normal"},{"id":"r02","suit":"road","title":"车牌侦探","text":"看前车车牌编故事：尾号728就是『七口人、俩猫、八条鱼』，编出这一户的日常。轮流编，编得最离谱的人荣任下一站零食点单大使，限点一个小零食。","minutes":5,"where":"road","stamina":"normal"},{"id":"r03","suit":"road","title":"车窗诗人","text":"轮流用一句话形容此刻的车窗外，比如『夕阳把高速烫成了一根油条』。不许重复别人用过的比喻，接不上的人在下一个服务区表演三秒僵尸跳。","minutes":5,"where":"road","stamina":"normal"},{"id":"r04","suit":"road","title":"副驾DJ令","text":"副驾接管音响连点三首，主驾不许跳过不许吐槽，每放一首DJ要讲一句『为什么是这首』。三首放完主驾可以反杀一轮，轮流当DJ直到到达目的地。","minutes":15,"where":"road","stamina":"normal"},{"id":"r05","suit":"road","title":"服务区考察团","text":"进服务区分头行动：一人去买吃的，一人去找『本站最佳风景位』，十五分钟后会合，交换成果并给本服务区打分。都不许催对方，分数封存到明天公布。","minutes":15,"where":"road","stamina":"normal"},{"id":"r06","suit":"road","title":"导航人设","text":"给导航起一个人设，比如你俩的班主任，全程用这个人设的口吻转播指令：『前方路口右转，别恋战。』谁笑到咳嗽，谁负责找今晚的饭馆，不许选连锁店。","minutes":15,"where":"road","stamina":"normal"},{"id":"r07","suit":"road","title":"车内电台访谈","text":"把车变成电台直播间：一人主持人一人嘉宾，本期主题『我是怎么被这人骗到手的』，中途可现编广告插播。到服务区换台，互换身份再播一期才许下车吃饭。","minutes":30,"where":"road","stamina":"normal"},{"id":"r08","suit":"road","title":"副驾野导游","text":"副驾假装本地资深导游，一本正经介绍沿途景点，内容必须一半真一半编；主驾负责捧场提问：『这座桥有多少年历史？』到达前揭底，更离谱的那版收进《家庭吹牛史》。","minutes":30,"where":"road","stamina":"normal"},{"id":"r09","suit":"road","title":"堵车时空邮局","text":"一堵车就启动：轮流说一件『如果能回到今天早上，我会多做的一件小事』，只许说小事，不许说教不许算账。说完击掌放行，轮到对方说时换人接棒。","minutes":30,"where":"road","stamina":"normal"},{"id":"r10","suit":"road","title":"星空电台","text":"夜路时关掉音乐，轮流问一个『车上限定问题』，比如『如果一直开下去，你想停在哪』。这些问题只许在车里问，到站就作废，没答完的也不许补问。","minutes":60,"where":"road","stamina":"normal"},{"id":"r11","suit":"road","title":"陌生小镇半日","text":"在地图上挑一个从没停过的镇子下高速，一小时内：吃当地最火的一家店，拍一张镇口合影，给对方买一件十块钱以内的纪念品。记不清镇名就现编一个。","minutes":60,"where":"road","stamina":"high"},{"id":"r12","suit":"road","title":"卸货大会","text":"回程开『卸货会』：轮流说今天最想删掉的一个画面和最想保存的一个画面，对方只许答『已删除』『已保存』。到家前把手机壁纸换成今天最想保存的那张。","minutes":15,"where":"road","stamina":"normal"},{"id":"h01","suit":"home","title":"洗碗演唱会","text":"抽签定谁洗碗：抽中“主演”的洗，抽中“啦啦队”的全程点歌、跟着节奏扭两下、夸一句泡沫真美。不许偷偷走开，被抓到就交换角色，谁都别想摸鱼。","minutes":5,"where":"home","stamina":"normal"},{"id":"h02","suit":"home","title":"3秒闪电任务","text":"你们各写3个30秒能搞定的小任务（浇花、擦镜子、扔垃圾都行），交换纸条同时开跑。先全部完成的大喊“闪电侠！”，另一位递上一杯水并鞠躬说：“好快，学习了。”","minutes":5,"where":"home","stamina":"normal"},{"id":"h03","suit":"home","title":"家居新闻联播","text":"你当主播，播报三条“本台家居新闻”，必须瞎编（例：沙发今天很累，扫地机器人闹情绪）。先笑场的人加演一段：去倒两杯水并敬礼。然后换人上台，全程要一本正经。","minutes":5,"where":"home","stamina":"normal"},{"id":"h04","suit":"home","title":"主厨学徒日","text":"今晚一人当主厨、一人当学徒：学徒只许打下手和瞎夸（“这刀工，米其林！”），不许抢锅。开饭时主厨负责仪式感：喂对方第一口并宣布“可以吃了”。下顿饭身份互换。","minutes":15,"where":"home","stamina":"normal"},{"id":"h05","suit":"home","title":"家务拍卖会","text":"把本周家务写成拍品（拖地、倒垃圾、擦灶台…），每人发10枚“亲亲币”竞拍，拍下的活儿归你，流拍的两人平分。可以喊价也可以卖萌耍赖，落槌必须握手说“成交”。","minutes":15,"where":"home","stamina":"normal"},{"id":"h06","suit":"home","title":"冰箱盲盒料理","text":"各自闭眼从冰箱摸一样食材放进对方篮子，被塞的人必须把它做进今晚的菜里。开饭后互相点评，掌声最响的那道菜加冕“本家米其林”，另一道的主厨认领洗碗彩蛋——剧场总要有人清场。吐槽可以，但禁止说“这能吃吗”。","minutes":15,"where":"home","stamina":"normal"},{"id":"h07","suit":"home","title":"断舍离小法庭","text":"你们各自挑一件“该扔嫌疑物”摆上桌，轮流当法官和辩护律师：律师为物品辩护60秒，法官判决“留”或“扔”。判扔的今晚装箱，判留的要把它抱一下再放回去。只许审物品，不许审人。","minutes":15,"where":"home","stamina":"normal"},{"id":"h08","suit":"home","title":"客厅野餐节","text":"你们在客厅铺一块毯子，把晚饭或零食搬上去，关大灯开小串灯（手机闪光灯也行）。规则：垫子上不许聊烦心事，违者加演一个冷笑话。收摊前互相颁发“今日最佳野餐搭子”奖。","minutes":30,"where":"home","stamina":"normal"},{"id":"h09","suit":"home","title":"角色互换一小时","text":"交换身份一小时：你演对方，语气、口头禅、走路的样儿都要学，还要替对方干一件他常干的家务。对方当导演，只许喊“卡”和纠正演技，不许翻旧账。一小时后互颁“最佳演员”奖。","minutes":30,"where":"home","stamina":"normal"},{"id":"h10","suit":"home","title":"大扫除限时赛","text":"你们设30分钟倒计时分区大扫除：一人厨房一人客厅，音乐开到最大。先干完自己片区的要冲去支援并喊“援军到了！”。收工后一起瘫进沙发，举杯（饮料也行）庆祝家里焕然一新。","minutes":30,"where":"home","stamina":"high"},{"id":"h11","suit":"home","title":"角落改造计划","text":"你们一起选家里最不顺眼的角落（玄关、桌面、床头），用现有家当加上20元以内的小物改造它。改造前后各拍一张照存进相册，配文“我家又漂亮了一点点”，署名写上两个人的名字。","minutes":30,"where":"home","stamina":"normal"},{"id":"h12","suit":"home","title":"二人餐厅开业","text":"你们一人任主厨、一人任服务生兼DJ，全流程开店：起店名、手写菜单、摆一张“正式餐桌”、上菜时报菜名。吃完顾客打星并留一句好评，主厨回一句“谢惠顾”。下周角色互换开分店。","minutes":60,"where":"home","stamina":"high"},{"id":"w01","suit":"rain","title":"三词猜心","text":"关灯躺好，你用三个词形容今天，其中一个必须是瞎编的。对方猜哪个是编的：猜中得一个晚安吻，猜错也吻一个——反正都要吻。然后换人出题，一人一轮。","minutes":5,"where":"home","stamina":"normal"},{"id":"w02","suit":"rain","title":"人声弹幕机","text":"打开一部你们都看过N遍的剧或视频并静音，两人分角色配音：一人配主角，另一人包揽全部配角和音效。配砸了不许停，笑着往下配才算本事。配完一段就交换角色。","minutes":5,"where":"home","stamina":"normal"},{"id":"w03","suit":"rain","title":"哼歌猜猜猜","text":"轮流哼一首歌（不许出歌词），对方30秒内猜歌名。猜不出可喊“求哼两句”一次。猜中更多的荣享“今晚优先抱抱权”，另一位要认认真真说一句：“你这耳朵，绝了。”","minutes":5,"where":"home","stamina":"normal"},{"id":"w04","suit":"rain","title":"被窝抽签真心话","text":"各写6张“被窝真心话”纸条（今天想重过一遍的瞬间、一句没说出口的谢谢、今晚最想吐槽的事…），折好抛进被窝。轮流抽一张照实说，对方只许问“然后呢”，不许点评对错。","minutes":15,"where":"home","stamina":"normal"},{"id":"w05","suit":"rain","title":"双人朗读剧场","text":"随手抓一本书，你读旁白，对方读所有对白，要求变声、带感情。读到高潮处两人同时拍一下床沿当掌声。谁先读笑场谁负责念下一段，读完一章就商量“明天还连载吗”。","minutes":15,"where":"home","stamina":"normal"},{"id":"w06","suit":"rain","title":"盲画肖像展","text":"各拿纸笔，眼睛只准看对方、不准看纸，凭手感画对方肖像，限时3分钟。画完办“家庭美术馆”：互相挂画、起标题、写展签（如《愤怒的头发》），一起评“更离谱奖”，奖品是一个拥抱。","minutes":15,"where":"home","stamina":"normal"},{"id":"w07","suit":"rain","title":"雨声故事接龙","text":"以“窗外开始下雨”为开头轮流接故事，每人一句，每句必须带一个下雨相关词（伞、积水、湿袜子…）。接不下去的喊“雨神饶命”，由对方出一个新词救场，故事继续。","minutes":15,"where":"home","stamina":"normal"},{"id":"w08","suit":"rain","title":"暂停解说版电影","text":"你们挑部老片窝着看，任何人可随时喊“暂停！”上台解说：角色此刻心里想什么、下一秒会发生什么。解说越离谱越好，观众（另一个人）负责鼓掌或扔抱枕抗议。每部片至少各解说两次。","minutes":30,"where":"home","stamina":"normal"},{"id":"w09","suit":"rain","title":"闭眼宵夜盲测","text":"做一份简单宵夜（酸奶水果、吐司都行），一人闭眼张嘴，对方喂三口并要求猜食材，猜什么都先鼓掌。播报式喂食：“第一口——来自冰箱的神秘力量”。然后互换角色。","minutes":30,"where":"home","stamina":"normal"},{"id":"w10","suit":"rain","title":"毛毯堡垒工程","text":"你们用毯子、椅子、枕头搭一个能钻进两个人的堡垒，完工后必须一起钻进去验收：打手电、看漫画或发呆十分钟。谁先弄塌谁负责重修，重修不许抱怨，还要说“这塌得真有创意”。","minutes":30,"where":"home","stamina":"normal"},{"id":"w11","suit":"rain","title":"家中声音地图","text":"关掉音乐，你们安静坐五分钟，各自写下屋里能听到的5种声音（冰箱嗡嗡、雨点、挂钟都算）。然后一人闭眼，另一人负责复现其中三种让他猜。全对者封“顺风耳”，另一位加演一段：模仿第六种声音。","minutes":30,"where":"home","stamina":"normal"},{"id":"w12","suit":"rain","title":"人生BGM交换会","text":"各挑10首“学生时代单曲循环”的歌连播。每首歌响起，选歌的人讲一件和它有关的小事，对方只许问“后来呢”。听完互选一首定为“我们家的歌”，存进同一个歌单并置顶。","minutes":60,"where":"home","stamina":"normal"},{"id":"m01","suit":"money","title":"百元心情代购","text":"各领100元预算，10分钟内在楼下小店或购物车里选一件“代表你今天心情”的礼物送给对方，可以只截图交卷。收礼人负责猜“为什么是它”，猜不中也要认真夸一句这份眼光。","minutes":15,"where":"any","stamina":"normal"},{"id":"m02","suit":"money","title":"猜价大师赛","text":"你随手指定家里5样东西，两人各写下心中估价，再一起翻购物软件对真实价格。误差最小的当场封“价格锦鲤”，误差最大的荣登“传奇广告位”，深情念一句广告词：“这价格，玄学，信我。”念完击掌。","minutes":5,"where":"any","stamina":"normal"},{"id":"m03","suit":"money","title":"省钱嘴替赛","text":"各自坦白一个最常见的“钱包漏洞”（点奶茶、凑单都算），然后互换身份当对方的“省钱嘴替”，帮对方想一个替代小动作。谁先笑场，谁下回路过豆浆摊要给对方带一杯。","minutes":5,"where":"any","stamina":"normal"},{"id":"m04","suit":"money","title":"超市盲配对决","text":"去超市各领50元，限时15分钟，只为对方挑今晚的食材，不许偷看对方购物篮。回家合体开伙，互相点评对方的谜之选择，但必须光盘。两人合计不许超100，超支的那位接下彩蛋任务：洗碗兼清场。","minutes":60,"where":"out","stamina":"high"},{"id":"m05","suit":"money","title":"账单夸夸大会","text":"翻开上月账单，各自挑出自己最满意的一笔消费，用60秒“带货腔”向对方推销：“这杯咖啡值回票价！”对方听完必须回应“有道理”或“下次带我”。全场禁止吐槽对方任何一笔。","minutes":15,"where":"home","stamina":"normal"},{"id":"m06","suit":"money","title":"愿望拍卖夜","text":"你们各写3个200元以内的心愿当拍品（“想去看一次海”“换个鼠标垫”都行），每人100分竞拍力。互相抬价，落槌的心愿写进“下月优先实现清单”。落槌必须击掌，成交感言限一句话。","minutes":30,"where":"home","stamina":"normal"},{"id":"m07","suit":"money","title":"家中物价局","text":"各自写下家里5样常用品的价钱（酱油、纸巾、洗洁精都行），再一起翻订单记录对答案。误差最小者加冕“物价局局长”，上任表演：即兴跳15秒广场舞，另一位有权砍价到8秒。","minutes":5,"where":"home","stamina":"normal"},{"id":"m08","suit":"money","title":"清仓美食周","text":"打开冰箱和橱柜，揪出3样快过期或被遗忘的食材零食，一起查一道能全用上的菜谱，本周内必须做掉它。出锅拍照留念，配文“一分钱都没浪费”，发给你们自己的小群。","minutes":15,"where":"home","stamina":"normal"},{"id":"m09","suit":"money","title":"提案答辩会","text":"各自提一个200元以内的小消费提案（加湿器、新椅子垫都行），对方扮演毒舌评委提两个问题，提案人答完，评委必须打分并补一句“虽然挑剔，但我支持你”。两个提案都排进日历。","minutes":30,"where":"home","stamina":"normal"},{"id":"m10","suit":"money","title":"50元心意三连","text":"各领50元去夜市、菜市场或便利店，任务：给对方买“你猜他现在最想要的三样东西”。回家交换拆袋，每猜中一样全场鼓掌一次。猜中更多的荣任今晚选剧导演，另一位担任颁奖嘉宾，把对方的战利品逐个夸一遍。","minutes":30,"where":"out","stamina":"high"},{"id":"m11","suit":"money","title":"合拼一单挑战","text":"预算100元，你们要谈成一笔“一人一半、都用得上”的消费（共用的蓝牙音箱、一起吃的炸鸡都行）。谈判限时10分钟，只许讨价还价不许掀桌。成交击掌下单，谈崩就记进“下次再谈清单”。","minutes":15,"where":"any","stamina":"normal"},{"id":"m12","suit":"money","title":"闲置复活大赛","text":"你们各自挖出一件吃灰的东西（旧书、小家电、还好穿的衣服），拍三张美图挂上二手平台，定价互相参谋。卖出后的货款全数存进“双人快乐基金”，月底一起花掉并合影纪念。","minutes":60,"where":"home","stamina":"normal"},{"id":"n01","suit":"night","title":"今天三幕剧","text":"睡前各自把今天剪成三部曲片名（如《早八惊魂》《外卖风波》《赖床大结局》），报给对方。对方挑最想看的一部，你用两句话讲完剧情，然后互道“下集再见”，关灯。","minutes":5,"where":"home","stamina":"normal"},{"id":"n02","suit":"night","title":"明日预言家","text":"睡前各自预言对方明天的一件小事（“你明早肯定又找不到袜子”），写进手机备忘录。明晚睡前对答案，猜中的人获得“被夸奖服务”：对方连夸三句，不许重复、不许敷衍。","minutes":5,"where":"home","stamina":"normal"},{"id":"n03","suit":"night","title":"枕头小纸条","text":"各写一张小纸条塞进对方枕头下，内容是“希望你明天遇到的一件小事”（如“中午吃到超好吃的饭”）。当晚不许偷看，明早各自掏出来，读完再出门，谁读谁笑。","minutes":5,"where":"home","stamina":"normal"},{"id":"n04","suit":"night","title":"80岁日常故事","text":"今晚由你开讲：《我们80岁那年的一个平常下午》，要讲到早饭吃什么、因为什么小事斗嘴、谁先让的步。听的人只许问“后来呢”。讲完换人，对方续讲《我们80岁的周末》。","minutes":15,"where":"home","stamina":"normal"},{"id":"n05","suit":"night","title":"睡前按摩接龙","text":"放一首歌的时间给对方按肩颈，力度要轻，被按的人负责点歌和瞎指挥（“往左一点，对，天才”）。一首歌结束必须交换，赖账的人明天要当一天“专属点歌台”，随叫随唱两句。","minutes":15,"where":"home","stamina":"normal"},{"id":"n06","suit":"night","title":"黑暗辨物赛","text":"关灯后你从床头摸5样小物（发圈、眼镜盒、遥控器都行）依次放进对方手心，对方摸黑猜是什么。猜对3个以上封“夜视侠”，可指定明天早饭的一道菜。然后互换。","minutes":15,"where":"home","stamina":"normal"},{"id":"n07","suit":"night","title":"初见重映会","text":"各自复述第一次见面的场景：你记得的天气、对方的穿着、你当时心里的第一句话。细节对不上时，以更好玩的版本为准并写进“家庭史”。最后互问：重来一次还会打招呼吗？","minutes":15,"where":"home","stamina":"normal"},{"id":"n08","suit":"night","title":"今日发布会","text":"一人当发言人，讲今天最开心和最堵心的一件事，只陈述经过和感受，不用想解决办法。对方是记录员，只许说“嗯”“然后呢”“谢谢你告诉我”，不许评价、不许支招、不许反驳。讲完互换。","minutes":30,"where":"home","stamina":"normal"},{"id":"n09","suit":"night","title":"愿望备忘录","text":"轮流说一个以“我希望我们”开头的愿望（如“我希望我们吵架不过夜”）。对方的任务只有一个：把这句原样复述一遍，再说“记下了”。不许辩论、不许翻旧账、不许阴阳怪气。各说三条封本。","minutes":30,"where":"home","stamina":"normal"},{"id":"n10","suit":"night","title":"深夜电台录音","text":"打开手机录音，开播“被窝电台”：轮流当主播，给一年后的对方留言——说说此刻的心情和想守住的小事，哼一段歌当片尾曲。存好并设一年后的提醒，到那天接着录下一期。","minutes":30,"where":"home","stamina":"normal"},{"id":"n11","suit":"night","title":"晚安暗号设计局","text":"一起设计你们家的睡前仪式：一个暗号手势、一句固定晚安词、一个“睡前必抱”动作。当场演练三遍定稿，拍小视频存相册。以后每晚照此执行，赖账的人明早补一句土味情话。","minutes":30,"where":"home","stamina":"normal"},{"id":"n12","suit":"night","title":"来年慢递信","text":"各给对方写一封信：今年最想谢谢对方的一件事、明年最想一起干的一件事。写完封口写上拆信日（挑个纪念日），锁进抽屉或存备忘录。写完击掌，谁都不许提前偷看。","minutes":60,"where":"home","stamina":"normal"}];
+/* 《双人戏精》内容层 — 花色/卡组/角色/需求/成就
+ * 构建时若注入 window.DRAMA_CARDS（96 张完整版）则优先使用，否则用内置 32 张兜底组。
+ */
+(function (global) {
+  'use strict';
+
+  const SUITS = {
+    gentle: { name: '温柔戏', icon: '🌅', color: '#e8b04b', desc: '表达欣赏、化解摩擦、深度连接' },
+    fun:    { name: '整活戏', icon: '🎭', color: '#d96c3f', desc: '扮演、脑洞、笑出声' },
+    photo:  { name: '出片戏', icon: '📸', color: '#9a6fd0', desc: '把拍照变成两个人的游戏' },
+    road:   { name: '公路戏', icon: '🚗', color: '#c9a227', desc: '自驾/乘车/路上专属' },
+    home:   { name: '居家戏', icon: '🍳', color: '#7fb069', desc: '宅家/做饭/家务的协作博弈' },
+    rain:   { name: '室内戏', icon: '🌧️', color: '#5b8fb9', desc: '雨天/晚上/安静的室内游戏' },
+    money:  { name: '消费戏', icon: '💰', color: '#c97b84', desc: '花钱与预算的趣味博弈' },
+    night:  { name: '夜幕戏', icon: '🛌', color: '#8a7fb0', desc: '睡前仪式与悄悄话' },
+  };
+
+  /* 兜底卡组 32 张（完整 96 张版由构建注入 window.DRAMA_CARDS） */
+  const FALLBACK_CARDS = [
+    { id: 'g1', suit: 'gentle', title: '今日颁奖', text: '日落档：各说一件"今天你做得挺好的地方"。只许一件，不许跟"但是"。', minutes: 5, where: 'any' },
+    { id: 'g2', suit: 'gentle', title: '交出方向盘', text: '接下来 2 小时由对方决定全部安排，你只负责跟随和鼓掌。', minutes: 60, where: 'any' },
+    { id: 'g3', suit: 'gentle', title: '辛苦陈述', text: '互相说说"这几天你辛苦在哪"。只陈述，不辩论，不纠正，听完说"收到"。', minutes: 15, where: 'any' },
+    { id: 'g4', suit: 'gentle', title: '锁屏仪式', text: '把对方拍得最好的一张设成你的锁屏，当场给对方看。', minutes: 5, where: 'any' },
+    { id: 'g5', suit: 'gentle', title: '如果重过今天', text: '"假如今天能重过"：各说一个会改的小细节，和一件绝不改的。', minutes: 15, where: 'any' },
+    { id: 'g6', suit: 'gentle', title: '十分钟海', text: '并排坐 10 分钟不说话，只看海/窗外。谁先开口谁明早负责叫醒服务。', minutes: 15, where: 'out' },
+    { id: 'g7', suit: 'gentle', title: '我希望…', text: '把今天最想吐槽的事，用"我希望…"开头重新说一遍。对方只许回答"好"。', minutes: 5, where: 'any' },
+    { id: 'g8', suit: 'gentle', title: '自创奖项', text: '互相颁一个"今日奖项"，奖名自创——比如"最佳忍住不吐槽奖"。', minutes: 5, where: 'any' },
+    { id: 'f1', suit: 'fun', title: '财阀夫妇', text: '未来 1 小时你们是"异国财阀夫妇微服私访"，每 10 分钟对一次暗号（暗号自创）。', minutes: 60, where: 'out' },
+    { id: 'f2', suit: 'fun', title: '口吻复读机', text: '用对方的口吻复述今天最累的瞬间。要像，但不许人身攻击。', minutes: 15, where: 'any' },
+    { id: 'f3', suit: 'fun', title: '毛孩子出道', text: '给今天遇到的第一只猫/狗起名字，并拍一张"官方定妆照"。', minutes: 5, where: 'out' },
+    { id: 'f4', suit: 'fun', title: '歌词对话', text: '只用歌词对话 10 分钟。外文歌也行，编就完了。', minutes: 15, where: 'any' },
+    { id: 'f5', suit: 'fun', title: '一本正经采访', text: '互相采访：你是记者，问 3 个问题，对方必须一本正经地胡说八道。', minutes: 15, where: 'any' },
+    { id: 'f6', suit: 'fun', title: '读心失败', text: '猜对方今天心里最想的一顿饭/一个地方。猜错加演深蹲 3 个当返场舞段。', minutes: 5, where: 'any' },
+    { id: 'f7', suit: 'fun', title: '百元礼物', text: '路边挑一件 100 元以内的小礼物送给对方，限时 10 分钟。', minutes: 30, where: 'out' },
+    { id: 'f8', suit: 'fun', title: '三词谜题', text: '用 3 个词形容今天的对方，让对方猜哪一个是你瞎编的。', minutes: 5, where: 'any' },
+    { id: 'p1', suit: 'photo', title: '拍照对决', text: '各给对方拍 3 张，全程不许指导。日落前各选"今日最佳"并说理由。', minutes: 30, where: 'out' },
+    { id: 'p2', suit: 'photo', title: '浮夸合照', text: '手机架好（或手持广角），自拍一张双人合照，表情要求：浮夸。', minutes: 5, where: 'any' },
+    { id: 'p3', suit: 'photo', title: '假装在欧洲', text: '找 3 个"假装在别国"的机位拍成明信片，发朋友圈让对方配文。', minutes: 60, where: 'out' },
+    { id: 'p4', suit: 'photo', title: '剪影对决', text: '日落逆光各拍一张剪影，谁更"高级"由对方观众的掌声决定。', minutes: 15, where: 'out' },
+    { id: 'p5', suit: 'photo', title: '走进画面', text: '"走进画面"练习：一方从画面外走来回头，连拍 20 张选 1 张。今天不许说"不够自然"。', minutes: 15, where: 'out' },
+    { id: 'p6', suit: 'photo', title: '离谱纪念照', text: '拍一张"只有我们俩在这儿才会拍"的照片。越离谱越好。', minutes: 15, where: 'any' },
+    { id: 'p7', suit: 'photo', title: '你是导演', text: '对方当导演：机位姿势全由对方定，你只按快门并保持沉默。', minutes: 30, where: 'any' },
+    { id: 'p8', suit: 'photo', title: '老照片续集', text: '选一张你们的旧合照，现场摆同款构图拍"续集"。', minutes: 15, where: 'any' },
+    { id: 'r1', suit: 'road', title: '路障外交', text: '遇到堵车/路障演习：谁负责交涉？交涉的人荣任"首席路障大使"，顺带执掌下一次加油全流程。', minutes: 5, where: 'road' },
+    { id: 'r2', suit: 'road', title: '副驾 DJ', text: '副驾点 3 首歌不许跳过，听完要说"有品位"。', minutes: 15, where: 'road' },
+    { id: 'r3', suit: 'road', title: '手势导航', text: '手势导航 10 分钟：副驾不许说话，只用手势指路。', minutes: 15, where: 'road' },
+    { id: 'r4', suit: 'road', title: '公路电影', text: '"如果是公路电影"：你们这部电影叫什么？各起一个片名，两个都算数，双双署名联合导演。', minutes: 15, where: 'road' },
+    { id: 'h1', suit: 'home', title: '厨房双人舞', text: '一起做一道两人都没做过的菜。翻车了也算完成，成品拍照存档。', minutes: 60, where: 'home' },
+    { id: 'w1', suit: 'rain', title: '关灯三词', text: '关灯互相用三个词形容今天，对方猜哪个是编的。', minutes: 15, where: 'home' },
+    { id: 'm1', suit: 'money', title: '心情采购', text: '给对方 50 元预算 10 分钟，买"最能代表你今天心情"的东西并说明理由。', minutes: 30, where: 'out' },
+    { id: 'n1', suit: 'night', title: '80 岁日常', text: '今晚由一方讲一个"我们 80 岁时的日常"三分钟小故事，不许打断。', minutes: 15, where: 'home' },
+  ];
+
+  const injected = (typeof global.DRAMA_CARDS === 'object' && global.DRAMA_CARDS && global.DRAMA_CARDS.length >= 80)
+    ? global.DRAMA_CARDS : FALLBACK_CARDS;
+  const CARDS = injected;
+
+  /* 角色 8 枚（校园版） */
+  const ROLES = [
+    { id: 'study',  icon: '📚', name: '自习监督员', duty: '占座、提醒上课、期末抽背', perk: '监督时对方玩手机有权没收一颗糖' },
+    { id: 'food',   icon: '🍜', name: '食堂情报官', duty: '侦察新窗口/限时菜/免排队时段', perk: '选砸了不被追责' },
+    { id: 'night',  icon: '🌙', name: '晚安播报员', duty: '睡前电台、互道晚安、叫醒服务', perk: '晚安话题由 TA 定' },
+    { id: 'errand', icon: '🏃', name: '首席跑腿员', duty: '带饭、取快递、代答到提醒', perk: '跑腿费按奶茶结算' },
+    { id: 'press',  icon: '🎤', name: '首席八卦记者', duty: '记录高光时刻与憨憨瞬间', perk: '丑照发布前有一票否决权' },
+    { id: 'mood',   icon: '🎪', name: '气氛组组长', duty: '讲冷笑话、组织小活动', perk: '冷场免责一次' },
+    { id: 'money',  icon: '🧋', name: '奶茶小管家', duty: '拼单凑满减、管小金库', perk: '每周一次免审批奶茶' },
+    { id: 'medic',  icon: '⛑️', name: '首席队医', duty: '降温提醒、送药、情绪急救', perk: '随时喊停 10 分钟休息' },
+  ];
+
+  /* 需求 6 项（校园版） */
+  const NEEDS = [
+    { id: 'together', icon: '🫂', name: '想要陪伴', suitHint: 'gentle', low: '说"随便"但盯着别人的合照', charge: '一起自习/散步一小时，不玩手机' },
+    { id: 'boba',     icon: '🧋', name: '奶茶续航', suitHint: 'money', low: '叹气变多、语气变冲', charge: '一杯奶茶或热可可，慢喝' },
+    { id: 'battery',  icon: '🔋', name: '考试周电量', suitHint: 'rain', low: '复习时坐不住、烦躁', charge: '取消一次约会当缓冲、早点睡' },
+    { id: 'food',     icon: '🫖', name: '被投喂', suitHint: 'home', low: '嘴上说"不饿"但盯着菜单', charge: '带一份夜宵或食堂新菜' },
+    { id: 'praise',   icon: '💬', name: '被认可', suitHint: 'gentle', low: '变沉默，或开始吐槽', charge: '具体地说一件今天对方做得好的地方' },
+    { id: 'spark',    icon: '🎁', name: '惊喜感', suitHint: 'fun', low: '对一切评价"还行"', charge: '路边小礼物、绕路 5 分钟看夕阳' },
+  ];
+
+  /* 50 件校园小事（点亮清单） */
+  const SMALL_THINGS = [
+    '一起上一节完全没听过的课', '图书馆并排自习一个下午', '食堂新窗口打卡并写一句锐评', '一起夜跑 3 公里',
+    '期末互相抽背知识点', '一起淋一场雨跑回宿舍', '在自习室塞给对方一张纸条', '考试周连续投喂夜宵一周',
+    '一起坐一次校园观光车', '拍一组"食堂大片"并发出去', '在操场看一次星星', '帮对方领一次堆成山的快递',
+    '互相当一天"生活委员"', '一起去看一次校园展览', '冬天共享一副手套', '挤同一把伞从食堂走回宿舍',
+    '一起参加一次社团活动', '生日零点第一个说生日快乐', '一起看一场校园晚会', '把对方介绍给自己的室友',
+    '一起完成一次小组 pre', '抢到一个图书馆神仙座位', '第一次用校园卡给对方刷卡', '一起去看一次樱花或银杏',
+    '一起拼单凑满减成功', '深夜视频连线一起写作业', '一起坐一次绿皮火车', '在对方学校见面时逛一次菜市场',
+    '为"共同梦想物品"一起存钱', '互相改造对方一套穿搭', '双排一局游戏全程没吵架', '认真说一次"这件事你是对的"',
+    '一起做一次校园志愿者', '看一次教学楼的日落', '早餐送到对方宿舍楼下', '一起制定并执行完一份复习计划',
+    '一起养一盆植物并给它起名', '收集对方的三句口头禅', '用对方的照片当一周壁纸', '一起绕校园最远的路散步',
+    '在奶茶店点对方的同款', '记住对方的鞋码并买对一次袜子', '看一次凌晨的操场', '毕业前在对方学院楼下合影',
+    '一起给未来的你们写一封信', '在对方考试前画一个加油符', '一起早起看一次升旗', '教对方一项自己的拿手技能',
+    '一起整理一次对方的相册', '把这条清单全部点亮 🎉',
+  ];
+
+  /* 成就 14 枚（check 接收 state，详见 engine.evalAchievements） */
+  const ACHIEVEMENTS = [
+    { id: 'first',    icon: '🎬', name: '开锣', hint: '完成第 1 张戏码', check: s => s.doneCount >= 1 },
+    { id: 'streak3',  icon: '🔥', name: '三连击', hint: '连续 3 个节拍有演出', check: s => s.streak >= 3 },
+    { id: 'streak7',  icon: '🌶️', name: '七连击', hint: '连续 7 个节拍有演出', check: s => s.streak >= 7 },
+    { id: 'streak21', icon: '🌙', name: '廿一日连台', hint: '连续 21 个节拍有演出', check: s => s.streak >= 21 },
+    { id: 'funAll',   icon: '🎭', name: '整活人', hint: '集齐 12 张整活戏', check: s => (s.suitDone.fun || 0) >= 12 },
+    { id: 'gentleAll',icon: '🌅', name: '温柔收藏家', hint: '集齐 12 张温柔戏', check: s => (s.suitDone.gentle || 0) >= 12 },
+    { id: 'c25',      icon: '🎥', name: '首演廿五场', hint: '累计完成 25 张', check: s => s.doneCount >= 25 },
+    { id: 'c50',      icon: '🏮', name: '老戏骨', hint: '累计完成 50 张', check: s => s.doneCount >= 50 },
+    { id: 'c100',     icon: '👑', name: '卷王之王', hint: '累计完成 100 张', check: s => s.doneCount >= 100 },
+    { id: 'peace',    icon: '🕊️', name: '和平使者', hint: '一周零免战牌，且累计完成 5 场演出', check: s => s.freeLast7 === 0 && s.doneCount >= 5 },
+    { id: 'allSuits', icon: '🎪', name: '全花色制霸', hint: '8 个花色各完成 1 张', check: s => Object.keys(SUITS).every(k => (s.suitDone[k] || 0) >= 1) },
+    { id: 'bridge',   icon: '🪜', name: '修桥人', hint: '递出 10 次台阶且 7 次被接住', check: s => s.repairSent >= 10 && s.repairCaught >= 7 },
+    { id: 'bank',     icon: '💛', name: '存款人', hint: '夸夸存折累计存入 20 句', check: s => s.praiseCount >= 20 },
+  ];
+
+  const REPAIRS = [
+    { id: 'peace', icon: '💛', text: '我想和好' },
+    { id: 'time',  icon: '⏳', text: '给我十分钟' },
+    { id: 'hug',   icon: '🤗', text: '抱一下' },
+  ];
+  global.DramaData = { SUITS, CARDS, ROLES, NEEDS, ACHIEVEMENTS, REPAIRS, SMALL_THINGS, isFullDeck: CARDS.length >= 80 };
+  if (typeof module !== 'undefined' && module.exports) module.exports = global.DramaData;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* ===== js/engine.js ===== */
+/* 《双人戏精》引擎 — 纯函数（可测）
+ * 每日确定性抽取 / 花色抽签 / 连击 / 成就求值。浏览器挂 window.DramaEngine。
+ */
+(function (global) {
+  'use strict';
+
+  function hashDate(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // v4.6 体力过滤：opts.noStamina=true 时滤掉高体力卡（stamina==='high'）。
+  // 不传 opts=不过滤；旧数据无 stamina 字段也不会被滤（undefined !== 'high'），向后兼容。
+  function filterStamina(cards, opts) {
+    return (opts && opts.noStamina) ? cards.filter(c => c.stamina !== 'high') : cards;
+  }
+
+  // 每日主线(温柔戏) + 支线(整活戏)，同日期全设备一致
+  function pickDaily(cards, dateStr, energy, opts) {
+    const maxMin = energy === 'low' ? 15 : Infinity; // 低迷日只出轻场
+    const src = filterStamina(cards, opts);
+    const rnd = mulberry32(hashDate(dateStr));
+    let gentle = src.filter(c => c.suit === 'gentle' && c.minutes <= maxMin);
+    let fun = src.filter(c => c.suit === 'fun' && c.minutes <= maxMin);
+    if (!gentle.length) gentle = src.filter(c => c.suit === 'gentle');
+    if (!fun.length) fun = src.filter(c => c.suit === 'fun');
+    if (!gentle.length || !fun.length) return { main: null, side: null };
+    return { main: gentle[Math.floor(rnd() * gentle.length)], side: fun[Math.floor(rnd() * fun.length)] };
+  }
+
+  // 花色内抽签（排除已抽），耗尽返回 null；opts.noStamina 同样生效
+  function drawFromSuit(cards, suit, excludeIds, rnd, opts) {
+    const pool = filterStamina(cards, opts).filter(c => (!suit || c.suit === suit) && !(excludeIds || []).includes(c.id));
+    if (!pool.length) return null;
+    return pool[Math.floor((typeof rnd === 'function' ? rnd() : Math.random()) * pool.length)];
+  }
+
+  // 连击：从今天往回数连续"有演出"的自然日（今天没演则从昨天起算，返回值不变——今天演了会 +1）
+  function computeStreak(doneDatesSet, todayStr) {
+    const d = new Date(todayStr + 'T12:00:00');
+    if (!doneDatesSet.has(d.toISOString().slice(0, 10))) d.setDate(d.getDate() - 1); // 今天还没演不掉连击
+    let streak = 0;
+    for (;;) {
+      const key = d.toISOString().slice(0, 10);
+      if (doneDatesSet.has(key)) { streak++; d.setDate(d.getDate() - 1); }
+      else break;
+    }
+    return streak;
+  }
+
+  // 节奏版连击：cadenceDays=节奏（几天一场）。间隔 ≤ cadenceDays+1 个自然日即延续；
+  // 今天还没演不清零（从昨天往回找最近一场，只要它距今天 ≤ cadenceDays+1 就仍算在场内）。
+  // restDays：休演日集合——休演日不算断链（合法保养）。
+  function computeCadenceStreak(doneDatesSet, todayStr, cadenceDays, restDaysSet) {
+    const cd = Math.max(1, cadenceDays || 1);
+    const grace = cd + 1; // 容忍窗口：节奏日之后 cd+1 天内演仍连续
+    const rest = restDaysSet || new Set();
+    const dates = Array.from(doneDatesSet).sort();
+    if (!dates.length) return 0;
+    const today = new Date(todayStr + 'T12:00:00');
+    const last = new Date(dates[dates.length - 1] + 'T12:00:00');
+    const restBetween = (fromDate, toDate) => {
+      let n = 0; const probe = new Date(fromDate);
+      while (probe < toDate) { probe.setDate(probe.getDate() + 1);
+        if (rest.has(probe.toISOString().slice(0, 10))) n++; }
+      return n;
+    };
+    // 最近一场距今：超出容忍窗口（可被休演日延长）则连击清零
+    const gapToToday = Math.round((today - last) / 86400000);
+    if (gapToToday > grace + restBetween(last, today)) return 0;
+    // 从最近一场向回逐场计数：相邻两场间隔 ≤ grace + 之间休演数即延续
+    let streak = 1;
+    for (let i = dates.length - 1; i > 0; i--) {
+      const a = new Date(dates[i] + 'T12:00:00'), b = new Date(dates[i - 1] + 'T12:00:00');
+      const gap = Math.round((a - b) / 86400000);
+      if (gap <= grace + restBetween(b, a)) streak++;
+      else break;
+    }
+    return streak;
+  }
+
+  // 距下一场演出还差几天（负数=已到/过期，0=今天）
+  function daysUntilDue(lastDoneDateStr, todayStr, cadenceDays) {
+    if (!lastDoneDateStr) return 0;
+    const cd = Math.max(1, cadenceDays || 1);
+    const last = new Date(lastDoneDateStr + 'T12:00:00');
+    const due = new Date(last); due.setDate(due.getDate() + cd);
+    const t = new Date(todayStr + 'T12:00:00');
+    return Math.ceil((due - t) / 86400000);
+  }
+
+  // 恋爱天数：从纪念日（含当天）到今天的自然天数（未设置返回 null）
+  function daysTogether(anniversaryStr, todayStr) {
+    if (!anniversaryStr) return null;
+    const a = new Date(anniversaryStr + 'T12:00:00');
+    const t = new Date(todayStr + 'T12:00:00');
+    if (isNaN(a) || isNaN(t) || t < a) return 0;
+    return Math.floor((t - a) / 86400000) + 1;
+  }
+
+  // 需求条状态循环 充足(0)→偏低(1)→告急(2)→充足
+  function nextNeedLevel(lv) { return ((lv || 0) + 1) % 3; }
+
+  // 免战牌容量
+  const FREE_PER_DAY = 2;
+
+  function evalAchievements(defs, state) {
+    const got = [];
+    for (const a of defs) {
+      try { if (a.check(state)) got.push(a.id); } catch (e) { /* 单枚坏定义不拖垮全部 */ }
+    }
+    return got;
+  }
+
+  /* 需求加权的抽卡：对方有等待中的需要时，优先抽中能回应它的花色。
+   * needText 里的需求库名称 → suitHint 匹配；自由文本回退 gentle（情感需求的安全牌）。
+   * 概率随等待天数上升：当天 35%、1-2 天 55%、≥3 天 80%。
+   * 返回 {card, boosted, suit} 或 null。 */
+  function pickWithNeedBoost(cards, drawn, need, waitingDays, suitHint, rnd) {
+    if (!need) return null;
+    const r = typeof rnd === 'function' ? rnd() : Math.random();
+    const hint = suitHint || 'gentle';
+    let pBoost = waitingDays >= 3 ? 0.8 : (waitingDays >= 1 ? 0.55 : 0.35);
+    const boostedPool = cards.filter(c => c.suit === hint && !(drawn || []).includes(c.id));
+    const normalPool = cards.filter(c => !(drawn || []).includes(c.id));
+    if (!normalPool.length) return null;
+    if (boostedPool.length && r < pBoost) {
+      return { card: boostedPool[Math.floor((typeof rnd === 'function' ? rnd() : Math.random()) * boostedPool.length)], boosted: true, suit: hint };
+    }
+    const c = normalPool[Math.floor((typeof rnd === 'function' ? rnd() : Math.random()) * normalPool.length)];
+    return { card: c, boosted: false, suit: c.suit };
+  }
+
+  // 关系气候：只看积极存款，不打分（Gottman 5:1 的天气化隐喻）。v4.0 修复原"雨天分支永不可达"的区间漏洞
+  function climate(weeklyPraise) {
+    const n = weeklyPraise || 0;
+    if (n === 0) return { icon: '🌤️', text: '待记录' };
+    if (n >= 5) return { icon: '☀️', text: '晴天' };
+    if (n >= 3) return { icon: '⛅', text: '转晴中（再存 ' + (5 - n) + ' 句放晴）' };
+    return { icon: '🌧️', text: '雨天（存一句，就晴一点）' };
+  }
+
+  global.DramaEngine = { hashDate, mulberry32, pickDaily, drawFromSuit, computeStreak, computeCadenceStreak, daysUntilDue, daysTogether, nextNeedLevel, evalAchievements, climate, pickWithNeedBoost, FREE_PER_DAY };
+  if (typeof module !== 'undefined' && module.exports) module.exports = global.DramaEngine;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* ===== js/capsules.js ===== */
+/* 《双人戏精》时间胶囊模块 v4.0 同框版
+ * 裁决：全文仅存本机（隐私），无任何上云。浏览器挂 window.DramaCapsules = { render, list }。
+ */
+(function (global) {
+  'use strict';
+
+  const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
+  const jget = (k, d) => { try { const v = LS(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+  const jset = (k, v) => LS(k, JSON.stringify(v));
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const uuid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+  function list() { return jget('cd.capsules', []); }
+  function save(list2) { jset('cd.capsules', list2); }
+
+  function daysUntil(unlock) {
+    return Math.ceil((new Date(unlock + 'T12:00:00') - new Date(today() + 'T12:00:00')) / 86400000);
+  }
+
+  function toastMsg(html, isErr) {
+    let el = document.getElementById('toast');
+    if (!el) { el = document.createElement('div'); el.id = 'toast'; document.body.appendChild(el); }
+    el.innerHTML = html; el.className = 'show' + (isErr ? ' err' : '');
+    clearTimeout(el._tm); el._tm = setTimeout(() => { el.className = ''; }, isErr ? 7000 : 4000);
+  }
+
+  /* 渲染：挂到 selector 容器。profile 传 {you, her} 供称呼。 */
+  function render(selector, profile) {
+    const slot = document.querySelector(selector); if (!slot) return;
+    const p = profile || { you: '你', her: '她' };
+    const caps = list();
+    const t = today();
+    const rows = caps.map(c => {
+      const dd = daysUntil(c.unlock);
+      const toName = c.to === 'you' ? p.you : (c.to === 'us' ? '未来的我们' : p.her);
+      if (c.opened && dd <= 0) {
+        return '<div class="cap opened">🔓 <b>' + esc(c.text) + '</b><div class="cap-meta">' + esc(c.created) + ' 封存 · 已拆</div></div>';
+      }
+      if (dd > 0) {
+        return '<div class="cap locked">🔒 给 ' + esc(toName) + ' 的胶囊 · 还有 <b>' + dd + '</b> 天可拆<div class="cap-meta">' + esc(c.created) + ' 封存</div></div>';
+      }
+      return '<div class="cap ready">🔓 <b>可拆了！</b>（' + esc(c.created) + ' 封存）<button class="btn-mini" data-open="' + c.id + '">💛 拆信</button></div>';
+    }).join('');
+    slot.innerHTML = [
+      '<div class="card capsule">',
+      '  <h3>⏳ 时间胶囊</h3>',
+      '  <p class="hint">写一段话封存起来，选个日子才会出现。写给 TA，或写给未来的你们。</p>',
+      '  <textarea id="cap-text" class="need-input" maxlength="200" placeholder="写给未来的 TA / 未来的我们…（最多 200 字）"></textarea>',
+      '  <div class="draw-bar">',
+      '    <select id="cap-unlock"><option value="7">1 周后可拆</option><option value="30">1 个月后可拆</option><option value="90">3 个月后可拆</option></select>',
+      '    <select id="cap-to"><option value="her">给 ' + esc(p.her) + '</option><option value="you">给 ' + esc(p.you) + '</option><option value="us">给未来的我们</option></select>',
+      '    <button class="btn-mini" id="cap-seal">🔒 封存</button>',
+      '  </div>',
+      rows ? '<div class="cap-list">' + rows + '</div>' : ''
+    ].join('\n');
+    document.getElementById('cap-seal').addEventListener('click', () => {
+      const text = (document.getElementById('cap-text').value || '').trim();
+      if (!text) { toastMsg('先写点内容再封存。', true); return; }
+      const days = parseInt((document.getElementById('cap-unlock') || {}).value || '7', 10);
+      const ud = new Date(); ud.setDate(ud.getDate() + days);
+      const unlock = ud.getFullYear() + '-' + String(ud.getMonth() + 1).padStart(2, '0') + '-' + String(ud.getDate()).padStart(2, '0');
+      const caps = list();
+      caps.push({ id: uuid(), text: text.slice(0, 500), unlock, created: today(), to: (document.getElementById('cap-to') || {}).value || 'her', opened: false });
+      save(caps);
+      toastMsg('🔒 已封存，' + days + ' 天后可拆。到时候见。');
+      render(selector, profile);
+    });
+    document.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => {
+      const caps = list();
+      const c = caps.find(x => x.id === b.dataset.open);
+      if (c && !c.opened) {
+        c.opened = true; save(caps);
+        toastMsg('🔓 ' + esc(c.text));
+        render(selector, profile);
+      }
+    }));
+  }
+
+  global.DramaCapsules = { render, list };
+  if (typeof module !== 'undefined' && module.exports) module.exports = global.DramaCapsules;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* ===== js/cloud-sync.js ===== */
+/* 《双人戏精》云中继前端 v4.2 — Cloudflare Workers + D1 匿名房间码
+ * 主案(BINDING-ASSESSMENT):零注册。6 位码一次性 join 换 roomKey;事件白名单双重校验。
+ * v4.2 首版同步范围(克制):仅台阶闭环(repair / repair_ack)——用户两轮提出的核心痛点。
+ * 隐私红线:日志/感想/免战/电量永不上云;不做在线状态/已读回执。
+ * 解绑一等公民:unbind 即本机清除 roomKey,云端房间自然废弃(6 位码不重用)。
+ */
+(function (global) {
+  'use strict';
+
+  /* v4.7 夸夸跨设备同步总开关(停用开关):false 时 emit 不发送 praise;pull 回调侧不管,由 app 侧判断 */
+  const PRAISE_SYNC_ENABLED = true;
+
+  const API_KEY = 'cd.cloud'; // { api, code, roomKey, me, lastPull }
+  const DEFAULT_API = 'https://api.yangch.website'; // 自有域名,国内可达(旧 workers.dev 通道仍在线,已绑定的用户不受影响)
+  const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
+  const jget = (k, d) => { try { const v = LS(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+  const jset = (k, v) => LS(k, JSON.stringify(v));
+  const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+  const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+
+  /* 事件合并(幂等,按 id 去重,ts 升序)——与 binding.js 同构的纯函数,独立维护+测试保护 */
+  function mergeEvents(mine, incoming) {
+    const map = new Map();
+    (mine || []).concat(incoming || []).forEach(e => { if (e && e.id && !map.has(e.id)) map.set(e.id, e); });
+    return Array.from(map.values()).sort((a, b) => a.ts - b.ts);
+  }
+
+  function state() { return jget(API_KEY, null); }
+  function saveState(st) { jset(API_KEY, st); }
+  function isBound() { const st = state(); return !!(st && st.roomKey && st.api); }
+
+  async function api(path, opts) {
+    const st = state();
+    const base = (st && st.api) || '';
+    const r = await fetch(base + path, Object.assign({
+      headers: { 'Content-Type': 'application/json' },
+    }, opts || {}));
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+    return data;
+  }
+
+  /* 创建房间:拿 6 位码 + roomKey(创建者即第一位成员;规则 v4.3.1:已有房间须先解除连接) */
+  async function createRoom(apiBase) {
+    if (isBound()) throw new Error('已连接一个小剧场——请先解除连接，再创建新的');
+    const st = state() || { me: uuid(), lastPull: 0 };
+    st.api = ((apiBase || DEFAULT_API) || '').replace(/\/+$/, '');
+    saveState(st); // 先落盘:api() 依赖 state().api 拼 base URL
+    const res = await api('/room', { method: 'POST', body: JSON.stringify({ me: st.me }) });
+    st.code = res.code; st.roomKey = res.roomKey;
+    saveState(st);
+    return st;
+  }
+
+  /* 加入房间:6 位码换 roomKey(幂等:同一设备重复加入同一房间无害;满员 2 人被拒) */
+  async function joinRoom(apiBase, code) {
+    if (isBound()) throw new Error('已连接一个小剧场——请先解除连接，再加入新的');
+    const st = state() || { me: uuid(), lastPull: 0 };
+    st.api = ((apiBase || DEFAULT_API) || '').replace(/\/+$/, '');
+    saveState(st); // 同上
+    const res = await api('/room/join', { method: 'POST', body: JSON.stringify({ code: String(code || '').trim(), me: st.me }) });
+    st.code = String(code).trim().toUpperCase(); st.roomKey = res.roomKey;
+    saveState(st);
+    return st;
+  }
+
+  /* 解绑:通知服务器释放席位(失败不阻塞),然后清除本机绑定。数据与房间保留,凭码可随时回来 */
+  function unbind() {
+    const st = state();
+    if (st && st.api && st.roomKey && st.me) {
+      fetch(st.api + '/room/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomKey: st.roomKey, me: st.me }),
+      }).catch(() => {});
+    }
+    try { localStorage.removeItem(API_KEY); } catch (e) { LS(API_KEY, 'null'); } // R4:彻底删键,不残留 "null" 字符串
+  }
+
+  /* 发事件:白名单+轻队列(失败静默,下次 pull/push 重试) */
+  let outbox = jget('cd.cloudOutbox', []);
+  function emit(type, payload) {
+    const st = state();
+    if (!isBound()) return null;
+    if (type === 'praise' && !PRAISE_SYNC_ENABLED) return null; // v4.7 夸夸停用开关(同管发送)
+    const ev = { id: uuid(), ts: Date.now(), date: today(), by: st.me, type, payload };
+    const WHITELIST = ['repair', 'repair_ack', 'praise'];
+    if (!WHITELIST.includes(type)) return null;
+    outbox.push(ev); jset('cd.cloudOutbox', outbox);
+    flush();
+    return ev;
+  }
+  let flushing = false;
+  async function flush() {
+    if (flushing || !isBound() || !outbox.length) return;
+    flushing = true;
+    try {
+      const batch = outbox.slice(0, 50);
+      await api('/events', { method: 'POST', body: JSON.stringify({ roomKey: state().roomKey, events: batch }) });
+      outbox = outbox.slice(batch.length); jset('cd.cloudOutbox', outbox);
+    } catch (e) { /* 静默:下次重试 */ }
+    flushing = false;
+  }
+
+  /* 拉事件:增量;onEvents(events, isRemoteEvent) 由调用方处理远端事件 */
+  async function pull(onEvents) {
+    if (!isBound()) return 0;
+    const st = state();
+    const res = await api('/events?roomKey=' + encodeURIComponent(st.roomKey) + '&since=' + (st.lastPull || 0));
+    const incoming = res.events || [];
+    const remote = incoming.filter(e => e.by !== st.me);
+    if (typeof onEvents === 'function' && remote.length) onEvents(remote);
+    const maxTs = incoming.reduce((m, e) => Math.max(m, e.ts), st.lastPull || 0);
+    st.lastPull = maxTs; saveState(st);
+    return remote.length;
+  }
+
+  let timer = null;
+  function startAuto(intervalSec, onEvents) {
+    stopAuto();
+    timer = setInterval(() => { pull(onEvents).catch(() => {}); }, Math.max(15, intervalSec || 30) * 1000);
+    pull(onEvents).catch(() => {});
+  }
+  function stopAuto() { if (timer) { clearInterval(timer); timer = null; } }
+
+  global.CloudSync = { state, isBound, createRoom, joinRoom, unbind, emit, pull, startAuto, stopAuto, mergeEvents, defaultApi: () => DEFAULT_API, PRAISE_SYNC_ENABLED };
+  if (typeof module !== 'undefined' && module.exports) module.exports = { mergeEvents };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* ===== js/app.js ===== */
+/* 《双人戏精》视图层 v4.0「同框版」
+ * 裁决(SCOPE-CUT-20261002)：一台手机打开就玩。主线=今日剧场(推荐场次/手气抽→演→收尾互夸→战报)；
+ * 分支1=🪜 台阶(吵架急救，平时不出现)；分支2=🎁 百宝箱(小事清单/时间胶囊/卡池全集/我们的记录/设置)。
+ * v4.0 下架：绑定/云同步/需求条/回应卡/体检/角色/想你了/关系气候(UI)——binding.js 与 github-sync.js 保留仓库但不再加载。
+ * 规则红线：免战每人每天 2 张(E.FREE_PER_DAY)；休演与开演互斥；文案指名道姓，不裸用"你/TA"。
+ */
+(function () {
+  'use strict';
+  const D = window.DramaData, E = window.DramaEngine;
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  /* P1-2:名字统一清洗——NFC 归一 → 剔控制符/零宽字符/双向隔离符/尖括号引号反引号反斜杠 → trim → 截 20 字;保 CJK/字母/数字/常规 emoji */
+  const cleanName = s => String(s || '').normalize('NFC')
+    .replace(/[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069<>"'`\\]/g, '')
+    .trim().slice(0, 20);
+  const pad2 = n => String(n).padStart(2, '0');
+  const today = () => { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
+  const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
+
+  const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
+  const jget = (k, d) => { try { const v = LS(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+  const jset = (k, v) => LS(k, JSON.stringify(v));
+
+  const profile = () => { const p = jget('cd.profile', { you: '你', her: '她', since: '', nextMeet: '' });
+    if (!p.you) p.you = '你'; if (!p.her) p.her = '她'; return p; };
+  const daily = () => {
+    const k = 'cd.daily.' + today(); let d = jget(k, null);
+    if (!d) d = { mainDone: false, sideDone: false, drawn: [], freeUsed: { you: 0, her: 0 }, energy: 'normal', restDay: false };
+    // 状态规范化：开演与休演互斥（G2.2）
+    if (d.restDay && (d.mainDone || d.sideDone)) { d.restDay = false; jset(k, d); }
+    return d;
+  };
+  const saveDaily = d => jset('cd.daily.' + today(), d);
+  const logAll = () => jget('cd.log', []);
+  const CADENCES = [1, 2, 3, 7];
+  const cadence = () => { const c = jget('cd.cadence', 1); return CADENCES.includes(c) ? c : 1; };
+  const CADENCE_LABEL = { 1: '每天一场', 2: '两天一场', 3: '三天一场', 7: '每周一场' };
+  const FREE_TOTAL = E.FREE_PER_DAY * 2;
+
+  let toastTimer = null;
+  let lastLucky = 0; // 手气抽冷却（防连点手滑烧卡池）
+  function toast(html, isErr) {
+    let el = $('#toast');
+    if (!el) { el = document.createElement('div'); el.id = 'toast'; document.body.appendChild(el); }
+    el.innerHTML = html; el.className = 'show' + (isErr ? ' err' : '');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className = ''; }, isErr ? 6000 : 3200);
+  }
+
+  function switchTab(name) {
+    curTab = name;
+    if (RENDERERS[name]) { try { RENDERERS[name](); } catch (e) { console.error(e); toast('⚠️ 页面渲染出错：' + esc(e.message), true); } }
+    document.querySelectorAll('section.view').forEach(s => s.classList.toggle('active', s.id === 'view-' + name));
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    window.scrollTo({ top: 0 });
+  }
+  let curTab = 'today';
+
+  /* v4.6.1:弃用原生 <input type="date">(各环境日历/滚轮行为不一,微信里选日要多点一次)——三下拉全环境一致
+   * R8 修复:allowFuture 时年份含未来 2 年(下次见面需要选明年) */
+  function dateSelectsHtml(value, allowFuture) {
+    const parts = (value || '').split('-');
+    const y0 = +parts[0] || 0, m0 = +parts[1] || 0, d0 = +parts[2] || 0;
+    const thisYear = new Date().getFullYear();
+    const yMax = thisYear + (allowFuture ? 2 : 0);
+    let yOpts = '<option value="">年</option>';
+    for (let i = yMax; i >= thisYear - 60; i--) yOpts += `<option value="${i}"${y0 === i ? ' selected' : ''}>${i}</option>`;
+    let mOpts = '<option value="">月</option>';
+    for (let i = 1; i <= 12; i++) mOpts += `<option value="${i}"${m0 === i ? ' selected' : ''}>${i}月</option>`;
+    let dOpts = '<option value="">日</option>';
+    for (let i = 1; i <= 31; i++) dOpts += `<option value="${i}"${d0 === i ? ' selected' : ''}>${i}</option>`;
+    return `<div class="date3"><select data-k="y">${yOpts}</select><select data-k="m">${mOpts}</select><select data-k="d">${dOpts}</select></div>`;
+  }
+  /* P1-7:年/月变更时按当月实际天数重建"日"选项(闰年感知);已选日>当月天数时钳到月末 */
+  const daysInMonth3 = (y, m) => (y && m) ? new Date(+y, +m, 0).getDate() : 31;
+  function bindDate3(box) {
+    if (!box) return;
+    const sel = k => box.querySelector(`[data-k="${k}"]`);
+    const yS = sel('y'), mS = sel('m'), dS = sel('d');
+    if (!yS || !mS || !dS) return;
+    const rebuild = () => {
+      const n = daysInMonth3(yS.value, mS.value);
+      const keep = dS.value;
+      let dOpts = '<option value="">日</option>';
+      for (let i = 1; i <= n; i++) dOpts += `<option value="${i}">${i}</option>`;
+      dS.innerHTML = dOpts;
+      dS.value = keep === '' ? '' : String(Math.min(+keep, n)); // 保留已选;超出当月天数钳到月末
+    };
+    yS.addEventListener('change', rebuild);
+    mS.addEventListener('change', rebuild);
+  }
+  function readDate3(box) {
+    if (!box) return '';
+    const g = k => { const el = box.querySelector(`[data-k="${k}"]`); return el ? el.value : ''; };
+    const y = g('y'), m = g('m'), d = g('d');
+    if (!y || !m || !d) return '';
+    const dc = Math.min(+d, daysInMonth3(y, m)); // P1-7:读取后再钳一次,兜住未联动/异常 DOM 残留(如 2-31)
+    return y + '-' + String(m).padStart(2, '0') + '-' + String(dc).padStart(2, '0');
+  }
+
+  /* ---------- 🚪 首次引导(v4.6 三幕式:艺名→选台→邀请函;全程可跳过,邀请永不拦截) ---------- */
+  const OB = { you: '', her: '', since: '' }; // 幕间暂存
+  function obMask() {
+    let mask = document.getElementById('onboard');
+    if (!mask) { mask = document.createElement('div'); mask.id = 'onboard'; document.body.appendChild(mask); }
+    return mask;
+  }
+  function obFinish(named, hintToast) {
+    const pf = profile();
+    if (named) {
+      pf.you = OB.you || '你'; pf.her = OB.her || '她';
+      if (OB.since) pf.since = OB.since;
+      jset('cd.profile', pf);
+    }
+    jset('cd.onboarded', true);
+    const mask = document.getElementById('onboard'); if (mask) mask.remove();
+    renderAll(); switchTab('today');
+    if (hintToast) toast(hintToast);
+    const qs = document.querySelector('.quickstart');
+    if (qs) setTimeout(() => qs.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+  }
+  /* 幕一·艺名 */
+  function showOnboarding() {
+    const mask = obMask();
+    mask.innerHTML = `
+      <div class="onboard-card">
+        <div class="ob-spot"></div>
+        <div class="ob-logo">🎭</div>
+        <h2>双人戏精</h2>
+        <p class="ob-sub">一台手机也能开演的情侣小剧场<br>灯光已就位，就差你俩。</p>
+        <div class="ob-names">
+          <input id="ob-you" maxlength="6" placeholder="你的名字">
+          <span>×</span>
+          <input id="ob-her" maxlength="6" placeholder="TA 的名字">
+        </div>
+        <label class="ob-date">在一起的日子（选填）${dateSelectsHtml('')}</label>
+        <button class="btn big" id="ob-next">入 座</button>
+        <button class="ob-skip" id="ob-skip">先随便看看</button>
+      </div>`;
+    $('#ob-next').addEventListener('click', () => {
+      OB.you = cleanName($('#ob-you').value); // P1-2:入口统一清洗
+      OB.her = cleanName($('#ob-her').value);
+      OB.since = readDate3(mask.querySelector('.date3'));
+      obStage2();
+    });
+    $('#ob-skip').addEventListener('click', () => obFinish(false));
+    bindDate3(mask.querySelector('.date3')); // P1-7:幕一日期三下拉联动
+  }
+  /* 幕二·选台(同框/异地分岔) */
+  function obStage2() {
+    jset('cd.onboarded', true); // P1-4:进入第二幕即算完成引导——此后中断/刷新不再重跑三幕
+    if (OB.you || OB.her || OB.since) { // 名字同步落盘:幕二刷新不丢(T5-1 修复)
+      const pf = profile();
+      if (OB.you) pf.you = OB.you; if (OB.her) pf.her = OB.her; if (OB.since) pf.since = OB.since;
+      jset('cd.profile', pf);
+    }
+    const mask = obMask();
+    mask.innerHTML = `
+      <div class="onboard-card">
+        <div class="ob-spot"></div>
+        <h2 style="font-size:20px">你们怎么演？</h2>
+        <p class="ob-sub">两种都可以，以后随时换。</p>
+        <button class="ob-mode" id="ob-same">
+          <b>🎭 同框演出</b><span>一台手机递来递去，今晚就能开演</span>
+        </button>
+        <button class="ob-mode" id="ob-far">
+          <b>📱 异地对戏</b><span>两台手机——给 TA 发一张邀请函</span>
+        </button>
+        <button class="ob-skip" id="ob-skip2">先不选，直接进剧场</button>
+      </div>`;
+    $('#ob-same').addEventListener('click', () => {
+      obFinish(true, '🎭 ' + esc(OB.you || '你') + ' × ' + esc(OB.her || '她') + '——现在就把手机递给 TA，开演！');
+    });
+    $('#ob-far').addEventListener('click', obStage3);
+    $('#ob-skip2').addEventListener('click', () => obFinish(true));
+  }
+  /* 幕三·邀请函(自动建房+canvas 邀请卡+可复制邀请链接;失败/跳过都不拦截) */
+  function obStage3() {
+    if (window.CloudSync && window.CloudSync.isBound()) { obFinish(true); return; } // P1-4:已连接时直接收尾,不再建房(会撞"请先解除连接"报错)
+    const mask = obMask();
+    mask.innerHTML = `
+      <div class="onboard-card">
+        <div class="ob-spot"></div>
+        <h2 style="font-size:20px">你的剧场，虚位以待</h2>
+        <p class="ob-sub" id="ob-inv-msg">正在搭建你们的剧场…</p>
+        <div id="ob-inv-body"></div>
+        <button class="ob-skip" id="ob-skip3">TA 还没空？先自己演</button>
+      </div>`;
+    $('#ob-skip3').addEventListener('click', () => obFinish(true));
+    (async () => {
+      try {
+        const st = await window.CloudSync.createRoom();
+        if (window.CloudSync.isBound()) window.CloudSync.startAuto(30, handleRemoteEvents);
+        $('#ob-inv-msg').textContent = '邀请函已生成——长按保存，微信发给 TA：';
+        $('#ob-inv-body').innerHTML = makeInviteCard(st.code)
+          + '<button class="btn big" id="ob-copy-link" style="margin-top:10px">📋 复制邀请链接（点开即入座）</button>';
+        const link = location.href.split('#')[0] + '#r=' + st.code + '&n=' + encodeURIComponent(cleanName(OB.you)); // P1-10:链接带上邀请人名字(已清洗)
+        $('#ob-copy-link').addEventListener('click', () => {
+          const done = () => toast('📋 链接已复制——微信发给 TA，TA 点开就能入座。');
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done, () => { const ta = document.createElement('textarea'); ta.value = link; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); });
+          else { const ta = document.createElement('textarea'); ta.value = link; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); }
+        });
+      } catch (e) {
+        $('#ob-inv-msg').textContent = '剧场暂时没搭起来（' + esc(String(e.message || e)) + '）——先自己演，之后在百宝箱「双人同步」里再邀请 TA。';
+      }
+    })();
+  }
+  /* 邀请函 canvas:双追光+虚位以待+大号房间码+固定域名二维码(手动输码兜底) */
+  function makeInviteCard(code) {
+    const pf = { you: OB.you || '你', her: OB.her || '她' };
+    const cv = document.createElement('canvas'); cv.width = 750; cv.height = 1200;
+    const ctx = cv.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, 1200);
+    g.addColorStop(0, '#2a1c4d'); g.addColorStop(1, '#17102a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 750, 1200);
+    // 双追光(品牌视觉:两束半透明光柱交叉)
+    const sp1 = ctx.createRadialGradient(180, 160, 20, 180, 160, 420);
+    sp1.addColorStop(0, 'rgba(232,176,75,.16)'); sp1.addColorStop(1, 'transparent');
+    ctx.fillStyle = sp1; ctx.fillRect(0, 0, 750, 1200);
+    const sp2 = ctx.createRadialGradient(580, 240, 20, 580, 240, 420);
+    sp2.addColorStop(0, 'rgba(232,160,160,.13)'); sp2.addColorStop(1, 'transparent');
+    ctx.fillStyle = sp2; ctx.fillRect(0, 0, 750, 1200);
+    ctx.strokeStyle = 'rgba(232,176,75,.5)'; ctx.lineWidth = 2; ctx.strokeRect(24, 24, 702, 1152);
+    const center = (t, y, font, color) => { ctx.font = font; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(t, 375, y); };
+    center('🎭 双人戏精', 130, 'bold 46px Georgia, "Noto Serif SC", serif', '#e8b04b');
+    center('你的剧场，虚位以待', 210, 'bold 40px Georgia, "Noto Serif SC", serif', '#f2ecff');
+    center(pf.you, 380, 'bold 52px Georgia, serif', '#ffd9a0');
+    center('×', 440, '34px serif', '#b3a6d6');
+    center(pf.her === '她' ? '—— 虚位以待 ——' : pf.her, 500, 'bold 52px Georgia, serif', pf.her === '她' ? '#7d6fa8' : '#ffd9a0');
+    center('TA 的手机扫下方二维码进剧场', 620, '24px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    // 大号房间码(手动输入兜底)
+    ctx.setLineDash([8, 6]); ctx.strokeStyle = '#e8b04b';
+    ctx.strokeRect(150, 660, 450, 120); ctx.setLineDash([]);
+    center(code, 740, 'bold 72px Georgia, serif', '#e8b04b');
+    center('（在剧场里输入这串码，也能入座）', 815, '20px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    // 固定域名二维码
+    drawQr(ctx, 285, 860, 6, 10); // 25*6=150+静区20 → 190 宽,居中 285..475
+    center('yangch.website', 1090, 'bold 30px Georgia, serif', '#e8b04b');
+    center('台阶直达 TA 手机 · 演砸了也是节目效果', 1135, '20px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    const url = cv.toDataURL('image/png');
+    return `<img class="report-img" alt="邀请函" src="${url}">`;
+  }
+  /* 扫邀请链接自动入座:URL 带 #r=房间码 → 弹「接过戏票」(预填码+自报名字,一键加入) */
+  function maybeJoinFromHash() {
+    const m = (location.hash || '').match(/#r=([2-9A-HJKMNP-Z]{6})(?:&n=([^&]+))?/i);
+    if (!m) return false;
+    const code = m[1].toUpperCase();
+    let invName = ''; // P1-10:邀请人名字,非法编码回退空
+    if (m[2]) { try { invName = cleanName(decodeURIComponent(m[2])); } catch (e) { invName = ''; } }
+    history.replaceState(null, '', location.pathname + location.search); // 清掉 hash 防刷新重复弹
+    if (window.CloudSync && window.CloudSync.isBound()) return false; // 已在座,不再弹
+    const mask = obMask();
+    mask.innerHTML = `
+      <div class="onboard-card">
+        <div class="ob-spot"></div>
+        <div class="ob-logo">🎟️</div>
+        <h2 style="font-size:20px">有人递来一张戏票</h2>
+        <p class="ob-sub">房间码已带到：<b style="color:#e8b04b;font-size:20px;letter-spacing:3px">${esc(code)}</b>${invName ? '<br>邀请人：' + esc(invName) : ''}</p>
+        <input id="jt-name" class="jt-input" maxlength="6" placeholder="你的名字">
+        <button class="btn big" id="jt-go">接过戏票，入座</button>
+        <button class="ob-skip" id="jt-skip">先不加入</button>
+        <p class="hint" id="jt-msg" style="margin-top:8px"></p>
+      </div>`;
+    $('#jt-skip').addEventListener('click', () => closeJoin(mask));
+    $('#jt-go').addEventListener('click', async () => {
+      const name = cleanName($('#jt-name').value); // P1-2:入口统一清洗
+      if (name) { const pf = profile(); pf.you = name; jset('cd.profile', pf); }
+      $('#jt-msg').textContent = '正在入座…';
+      try {
+        await window.CloudSync.joinRoom(null, code);
+        window.CloudSync.startAuto(30, handleRemoteEvents);
+        if (invName) { const pf = profile(); pf.her = invName; jset('cd.profile', pf); } // P1-10:入座成功,邀请人写入 her(与 pf.you 自报名同一处 profile 逻辑)
+        jset('cd.onboarded', true);
+        mask.remove();
+        renderAll(); switchTab('today');
+        toast('🎭 角色已定，对手戏开演——TA 递的台阶会直接到你手机上。');
+      } catch (e) {
+        $('#jt-msg').textContent = '❌ ' + (e.message || '入座失败') + '——确认码没输错？或稍后再试。';
+      }
+    });
+    return true;
+  }
+  function closeJoin(mask) {
+    mask.remove();
+    if (!jget('cd.onboarded', false)) showOnboarding(); // 没走过引导的,回到正常首启
+  }
+
+  /* ---------- 派生状态 ---------- */
+  function deriveState() {
+    const log = logAll();
+    const doneDates = [...new Set(log.map(x => x.date))];
+    const suitDone = {};
+    log.forEach(x => { const c = D.CARDS.find(y => y.id === x.cardId); if (c) suitDone[c.suit] = (suitDone[c.suit] || 0) + 1; });
+    let freeLast7 = 0; const restDays = new Set();
+    for (let i = 0; i < 30; i++) {
+      const key = daysAgo(i);
+      const dd = jget('cd.daily.' + key, null);
+      if (dd) {
+        if (i < 7 && dd.freeUsed && typeof dd.freeUsed === 'object') freeLast7 += (dd.freeUsed.you || 0) + (dd.freeUsed.her || 0);
+        if (dd.restDay) restDays.add(key);
+      }
+    }
+    const repair = jget('cd.repair', []);
+    const praise = jget('cd.praise', []);
+    const weekPraise = praise.filter(x => x.date >= daysAgo(6));
+    return {
+      doneCount: log.length, doneDates, suitDone, freeLast7, restDays,
+      daysTogether: E.daysTogether(profile().since || null, today()),
+      streak: E.computeCadenceStreak(new Set(doneDates), today(), cadence(), restDays),
+      lastDone: doneDates.length ? doneDates[doneDates.length - 1] : null,
+      last30Done: doneDates.filter(d => d >= daysAgo(29)).length,
+      repairSent: repair.length, repairCaught: repair.filter(x => x.caught === true).length,
+      praiseCount: praise.length, praiseWeek: weekPraise.length, weekPraise
+    };
+  }
+
+  /* ---------- 🎬 今日剧场 ---------- */
+  function renderToday() {
+    const d = daily(), p = profile(), st = deriveState();
+    const q = E.pickDaily(D.CARDS, today(), d.energy);
+    const todayLog = logAll().filter(x => x.date === today());
+    const logCache = logAll();
+    const strip = Array.from({ length: 30 }, (_, i) => {
+      const key = daysAgo(29 - i);
+      const cls = logCache.some(x => x.date === key) ? 'dot done' : (st.restDays.has(key) ? 'dot rest' : 'dot');
+      return `<span class="${cls}" title="${key}"></span>`;
+    }).join('');
+    const pending = jget('cd.repair', []).find(x => x.date === today() && x.caught === null);
+    // P1-9:今日已有演出时 dueLine 收敛为一句,不再叠加节拍/首演文案。N4 删伪状态:抽卡不算开演,只有勾选(mainDone/sideDone)或演完入账(todayLog)才算
+    const playedToday = todayLog.length > 0 || d.mainDone || d.sideDone;
+    const dueLine = playedToday ? '✅ 今日已开演——想再加一场随意，明天见。' : (st.lastDone === null ? '🎬 首演随时开始。' : (() => {
+      const due = E.daysUntilDue(st.lastDone, today(), cadence());
+      return due <= 0 ? '✨ 今天正好该演了——一张卡，一个夜晚。'
+        : '🌙 距下一场还有 <b>' + due + '</b> 天（' + esc(CADENCE_LABEL[cadence()]) + '）；想提前演也随你。';
+    })());
+    const lastDrawn = (d.drawn && d.drawn.length) ? D.CARDS.find(c => c.id === d.drawn[d.drawn.length - 1]) : null;
+    const remotePendings = jget('cd.remoteRepair', []).filter(x => x.date === today() && x.acked === null); // v4.2 远端台阶
+
+    const root = $('#view-today');
+    const isNew = st.doneCount < 3; // v4.6 首屏减重:前 3 场只当"戏单",杂项让路
+    const loveCard = `
+      <div class="love-days card">
+        <div class="ld-num">${st.daysTogether === null
+          ? '<b style="font-size:22px">💕</b><span style="font-size:13px;margin-left:8px">还没填纪念日 · 去「百宝箱 → 设置」</span>'
+          : '<b>' + st.daysTogether + '</b><span>天</span>'}</div>
+        <div class="ld-set">
+          <div class="names">
+            <input id="pf-you" value="${esc(p.you)}" maxlength="6" title="左边这位的名字">
+            <span class="amp">×</span>
+            <input id="pf-her" value="${esc(p.her)}" maxlength="6" title="右边这位的名字">
+          </div>
+          <div class="ld-next">${p.nextMeet ? (() => {
+            const dd = Math.ceil((new Date(p.nextMeet + 'T12:00:00') - new Date(today() + 'T12:00:00')) / 86400000);
+            return dd > 0 ? '距离下次见面还有 <b>' + dd + '</b> 天' : (dd === 0 ? '今天见面！' : '');
+          })() : '纪念日与见面日可在「🎁 百宝箱 → 设置」里填'}</div>
+        </div>
+      </div>`;
+    const questCard = `
+      <div class="card quest">
+        <h3>📜 今晚的场次 <span class="count">已演 ${todayLog.length} 场（加场不另计） ｜ 演了是收利，不演也没关系</span></h3>
+        <p class="hint due-line">${dueLine}</p>
+        ${st.doneCount === 0 ? `
+        <div class="quickstart">
+          <div class="qs-head">⚡ 第一次玩？<b>碎片场，最快 5 分钟</b>——读出来就算演，尬住也算节目效果</div>
+          ${(() => {
+            const qs = D.CARDS.filter(c => c.minutes <= 5);
+            const pick3 = qs.slice().sort(() => Math.random() - 0.5).slice(0, 3);
+            return '<div class="qs-cards">' + pick3.map(c =>
+              `<button class="qs-card" data-qs="${c.id}"><b>${esc(c.title)}</b><span>${c.minutes} 分钟 · ${esc(D.SUITS[c.suit].name)}</span></button>`).join('') + '</div>';
+          })()}
+          <p class="hint">随便点一张，照着读完就算演完——没有观众，只有 TA。</p>
+        </div>` : ''}
+        ${q.main ? `<label class="q"><input type="checkbox" id="q-main" ${d.mainDone ? 'checked' : ''}>
+          <span class="suit-dot" style="background:${D.SUITS.gentle.color}">🌅 主场</span>
+          <b>${esc(q.main.title)}</b> — ${esc(q.main.text)}<br><span class="lowmode">低配演法：两个人把这段各念一遍，念完就算演 ✅</span></label>` : ''}
+        ${q.side && !isNew ? `<details class="more-shows"><summary>更多场次</summary><label class="q"><input type="checkbox" id="q-side" ${d.sideDone ? 'checked' : ''}>
+          <span class="suit-dot" style="background:${D.SUITS.fun.color}">🎭 加场</span>
+          <b>${esc(q.side.title)}</b> — ${esc(q.side.text)}<br><span class="lowmode">低配演法：两个人把这段各念一遍，念完就算演 ✅</span></label></details>` : ''}
+        <div class="dgrid" id="drawn-slot">${lastDrawn ? cardHtml(lastDrawn, d.drawn || []) : ''}</div>
+        <div class="draw-bar">
+          <button class="btn" id="lucky">🎲 手气抽一张</button>
+          <button class="mini" id="tired">${d.energy === 'low' ? '⚡ 今晚累：只出轻场（点我恢复）' : '😼 今晚累了（只出 15 分钟轻场）'}</button>
+        </div>
+        <p class="hint">🎭 剧场规则：演砸了是节目效果，尬住了是名场面——这里没有观众，不用演给任何人看。</p>
+        ${d.restDay
+          ? `<div class="restbox">🌙 今晚休演——保养日不算缺席，连击不断。<button class="mini" id="unrest">取消休演</button></div>`
+          : `<button class="mini rest-btn" id="rest">🌙 今天不演了（休演不断连击）</button>`}
+      </div>`;
+    const wrapCard = `
+      <div class="card">
+        <h3>🎬 收尾 <span class="count">演完一场，别忘了这两步</span></h3>
+        <p class="hint">研究发现：稳定的亲密关系里，积极互动是消极互动的 5 倍以上。每天互存一句，存的时候不许带"但是"。</p>
+        <div class="draw-bar">
+          <button class="suit-btn praise-btn" id="pr-you">💛 给${esc(p.her)}存一句</button>
+          <button class="suit-btn praise-btn" id="pr-her">💛 给${esc(p.you)}存一句</button>
+        </div>
+        <div id="praise-form" style="display:none;margin-top:8px">
+          <p class="hint" id="praise-target"></p>
+          <textarea id="praise-text" class="need-input" style="height:60px" maxlength="60" placeholder="一句就够，不许带'但是'…"></textarea>
+          <div class="draw-bar"><button class="mini" id="praise-save">💛 存入</button><button class="mini" id="praise-cancel">取消</button></div>
+        </div>
+        <p class="hint">本周已存 <b>${st.praiseWeek}</b> 句 ｜ 累计 ${st.praiseCount} 句</p>
+        <div class="draw-bar">
+          <button class="btn" id="make-report" ${todayLog.length ? '' : 'disabled'}>📸 生成今晚战报</button>
+        </div>
+        ${todayLog.length ? '' : '<p class="hint">先演一场，才有战报可生成。</p>'}
+        <div id="report-slot"></div>
+      </div>`;
+    const freeCard = `
+      <div class="card">
+        <h3>🎫 免战牌</h3>
+        <p class="hint">打出后本回合作废，对方不许追问原因。每日每人 ${E.FREE_PER_DAY} 张，零点重置。</p>
+        <div class="free-row">
+          ${['you', 'her'].map(w => {
+            const left = Math.max(0, E.FREE_PER_DAY - ((d.freeUsed && d.freeUsed[w]) || 0));
+            return `<button class="free-btn ${left === 0 ? 'off' : ''}" data-who="${w}" ${left === 0 ? 'disabled' : ''}>
+            🛡️ ${esc(p[w])}（剩 ${left} 张）</button>`;
+          }).join('')}
+        </div>
+        <p class="hint">本日已用 ${((d.freeUsed && d.freeUsed.you) || 0) + ((d.freeUsed && d.freeUsed.her) || 0)}/${FREE_TOTAL} 张。</p>
+      </div>`;
+    root.innerHTML = `
+      ${pending || remotePendings.length ? `<div class="card ladder-tip"><b>🪜 有台阶待回应</b>——去 <a href="#" id="tip-ladder">台阶页</a> 看看或回应。</div>` : ''}
+      ${isNew ? (questCard + ((p.since || p.nextMeet) ? loveCard : '') + wrapCard) /* P1-6:新客填过纪念日/见面日也亮恋爱天数卡,排在戏单之后 */
+        : (loveCard + questCard + wrapCard + freeCard)}`;
+
+    // 名字：input+debounce 即时保存（G2.3），change 兜底；同步更新依赖标签（免战牌/夸夸按钮）
+    const syncNameLabels = pf => {
+      const dd = daily();
+      document.querySelectorAll('.free-btn').forEach(b => {
+        const left = Math.max(0, E.FREE_PER_DAY - ((dd.freeUsed && dd.freeUsed[b.dataset.who]) || 0));
+        b.innerHTML = '🛡️ ' + esc(pf[b.dataset.who]) + '（剩 ' + left + ' 张）';
+      });
+      const py = $('#pr-you'), ph = $('#pr-her');
+      if (py) py.textContent = '💛 给' + pf.her + '存一句';
+      if (ph) ph.textContent = '💛 给' + pf.you + '存一句';
+    };
+    [$('#pf-you'), $('#pf-her')].forEach(inp => {
+      if (!inp) return; // v4.6:新客首屏隐藏恋爱天数卡(名字框在其中),改引导里已采集
+      let tm = null;
+      const saveNames = () => {
+        const pf = profile();
+        pf.you = cleanName($('#pf-you').value) || '你'; pf.her = cleanName($('#pf-her').value) || '她'; // P1-2:入口统一清洗
+        jset('cd.profile', pf);
+        syncNameLabels(pf);
+      };
+      inp.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(saveNames, 400); });
+      inp.addEventListener('change', () => { clearTimeout(tm); saveNames(); toast('✅ 名字已保存，本机记住你们了。'); });
+    });
+
+    $('#tip-ladder') && ($('#tip-ladder').onclick = e => { e.preventDefault(); switchTab('ladder'); });
+
+    // N3 极简场:点击即入抽中池并滚动到卡位(演完按钮在卡上)
+    document.querySelectorAll('.qs-card').forEach(b => b.addEventListener('click', () => {
+      const id = b.dataset.qs;
+      if (!d.drawn.includes(id)) { d.drawn.push(id); saveDaily(d); }
+      const card = D.CARDS.find(c => c.id === id);
+      toast('⚡ 这张就是你们的第一场：' + esc(card.title) + '——照着读完就算演完。');
+      renderToday();
+      setTimeout(() => { const el = document.querySelector('#drawn-slot .done-btn'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80);
+    }));
+
+    [['#q-main', 'mainDone'], ['#q-side', 'sideDone']].forEach(([sel, key]) => {
+      const el = $(sel); if (!el) return;
+      el.addEventListener('change', () => {
+        d[key] = el.checked; saveDaily(d);
+        if (el.checked) toast('🎬 开演！');
+        const log = logAll();
+        const qi = log.findIndex(x => x.cardId === 'daily:quest' && x.date === today());
+        if (d.mainDone && d.sideDone) {
+          if (qi < 0) { log.unshift({ cardId: 'daily:quest', date: today(), ts: Date.now(), note: '' }); jset('cd.log', log); }
+          const st2 = deriveState(); toast('🏆 今日场次杀青！' + (st2.streak > 1 ? '节拍连演 ' + st2.streak + ' 场。' : '记得领取精神奖励。'));
+        } else if (qi >= 0) { log.splice(qi, 1); jset('cd.log', log); } // 卸勾回滚（G2.2）
+        checkAchievements(); renderToday();
+      });
+    });
+    $('#lucky').addEventListener('click', () => {
+      if (Date.now() - lastLucky < 3000) { toast('刚抽过一张——先演这张，或缓一口气再抽。', true); return; }
+      lastLucky = Date.now();
+      let pool = d.energy === 'low' ? D.CARDS.filter(c => c.minutes <= 15) : D.CARDS.slice();
+      // 48h 内递过台阶：五成概率偏温柔戏（递台阶后的安全牌）
+      const recentRepair = jget('cd.repair', []).filter(x => x.date >= daysAgo(2)).length > 0;
+      let picked = null;
+      if (recentRepair && Math.random() < 0.5) picked = E.drawFromSuit(pool, 'gentle', d.drawn);
+      if (!picked) picked = E.drawFromSuit(pool, null, d.drawn);
+      if (!picked) { toast('今天的卡全抽完了——都是你们的了，明天再来。', true); return; }
+      d.drawn.push(picked.id); saveDaily(d);
+      toast('抽中【' + esc(D.SUITS[picked.suit].name) + '】<b>' + esc(picked.title) + '</b>：' + esc(picked.text));
+      renderToday();
+    });
+    $('#tired').addEventListener('click', () => {
+      d.energy = d.energy === 'low' ? 'normal' : 'low'; saveDaily(d); renderToday();
+      if (d.energy === 'low') toast('😼 低迷日电量已记录——今天只出 15 分钟内的轻场，60 分钟的卡都藏起来了。');
+    });
+    const rb = $('#rest'); if (rb) rb.addEventListener('click', () => {
+      const playedN = logAll().filter(x => x.date === today()).length;
+      if (d.mainDone || d.sideDone || playedN > 0) { // R3:勾场/抽卡演完任一路径都算已开演,休演互斥全覆盖
+        toast(playedN > 0 ? '今天已经开演 ' + playedN + ' 场了，不需要休演——好好享受今晚。' : '今天已经开了场次，不需要休演——好好享受今晚。', true);
+        return;
+      }
+      d.restDay = true; saveDaily(d); toast('🌙 好的剧场也懂散场。明晚，灯照常亮。'); renderToday();
+    });
+    const ub = $('#unrest'); if (ub) ub.addEventListener('click', () => { d.restDay = false; saveDaily(d); renderToday(); });
+    $('#pr-you').addEventListener('click', () => showPraiseForm('you', 'her'));
+    $('#pr-her').addEventListener('click', () => showPraiseForm('her', 'you'));
+    const pfSave = $('#praise-save'); if (pfSave) pfSave.addEventListener('click', () => savePraise($('#praise-form').dataset.from, $('#praise-form').dataset.to));
+    const pfCancel = $('#praise-cancel'); if (pfCancel) pfCancel.addEventListener('click', () => { $('#praise-form').style.display = 'none'; });
+    const mr = $('#make-report');
+    if (mr && !mr.disabled) mr.addEventListener('click', makeReport);
+    document.querySelectorAll('.free-btn').forEach(b => b.addEventListener('click', () => {
+      if (!d.freeUsed || typeof d.freeUsed !== 'object') d.freeUsed = { you: 0, her: 0 };
+      const who = b.dataset.who;
+      if ((d.freeUsed[who] || 0) >= E.FREE_PER_DAY) { toast(esc(p[who]) + '的免战牌今天用完了——按规则，戏码得演完。', true); return; }
+      d.freeUsed[who] = (d.freeUsed[who] || 0) + 1; saveDaily(d);
+      toast('🛡️ ' + esc(p[who]) + ' 打出免战牌，本回合作废，不追问。');
+      renderToday();
+    }));
+    bindDone();
+  }
+
+  /* v4.4.2:夸夸改为页面内联输入(prompt() 在微信 iOS WebView 不稳定且手机体验差) */
+  const PRAISE_SEEDS = ['今天 TA 替你挡的一件小事', 'TA 最近让你心动的一个瞬间', 'TA 做得越来越像 TA 想成为的样子的一处'];
+  function showPraiseForm(from, to) {
+    const form = $('#praise-form'); if (!form) return;
+    form.style.display = 'block';
+    const seed = PRAISE_SEEDS[Math.floor(Math.random() * PRAISE_SEEDS.length)];
+    $('#praise-target').innerHTML = '给 <b>' + esc(profile()[to]) + '</b> 存一句夸夸（一句就够，不许带"但是"）<br>灵感：' + esc(seed) + '？';
+    const ta = $('#praise-text'); ta.value = '';
+    const stale = form.querySelector('.praise-err'); if (stale) stale.remove(); // N2:重开表单不带上一条的残留红字
+    form.dataset.from = from; form.dataset.to = to;
+    setTimeout(() => ta.focus(), 50);
+    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function savePraise(from, to) {
+    const form = $('#praise-form'); if (!form) return;
+    const ta = $('#praise-text');
+    const text = (ta.value || '').trim();
+    if (!text) { toast('先写一句——空着存不了。', true); return; }
+    if (/但是|可是|不过/.test(text)) {
+      // N2:除 toast 外,在 #praise-text 下方插入/更新常驻内联红字;输入保留不清空,改完可直接重存
+      let err = form.querySelector('.praise-err');
+      if (!err) { err = document.createElement('div'); err.className = 'praise-err'; ta.insertAdjacentElement('afterend', err); }
+      err.textContent = '❌ 夸夸里出现"但是/可是/不过"，改一改再存';
+      toast('❌ 这句话里有"但是"——夸夸就纯粹一点，改一改再存？', true); return;
+    }
+    const savedErr = form.querySelector('.praise-err'); if (savedErr) savedErr.remove(); // N2:正常保存清除红字
+    const arr = jget('cd.praise', []);
+    arr.unshift({ ts: Date.now(), date: today(), from, to, text: text.slice(0, 60) });
+    jset('cd.praise', arr.slice(0, 100));
+    // v4.7 夸夸跨设备同步:本机入账成功后,已绑定且开关开启才 emit(60 字内文本)
+    if (window.CloudSync && window.CloudSync.isBound() && window.CloudSync.PRAISE_SYNC_ENABLED) {
+      window.CloudSync.emit('praise', { from, to, text: text.slice(0, 60) });
+    }
+    checkAchievements();
+    toast('💛 已存入存折。被夸的人现在就可以看。');
+    form.style.display = 'none';
+    renderToday();
+  }
+
+  /* ---------- 📸 战报（canvas，纯前端零请求） ---------- */
+  /* N5.1 真二维码:矩阵离线预生成(qrcode-generator lib, version2/ECC-M, 内容=https://yangch.website),
+   * 运行时零依赖零计算,保证可扫。重新生成:见 tests/qr.test.js 头部注释。 */
+  const QR_YANGCH = { size: 25, hex: 'fe2e3fc14e506ea06bb75c95dba62aec122507faaafe01870082bfe72eef8f87ee4d74117d9eef0a0d24588a2f8d7728d52db7aefa0060443f8b2a304a710ba11fbdd37b0ee99c1b04d9f1febc848' };
+  function drawQr(ctx, x, y, modulePx, quietPx) {
+    const q = quietPx === undefined ? Math.ceil(modulePx * 2.5) : quietPx; // 静区≥2模块,扫码器要求
+    const s = QR_YANGCH.size;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x, y, s * modulePx + q * 2, s * modulePx + q * 2);
+    ctx.fillStyle = '#17102a';
+    for (let r = 0; r < s; r++) {
+      for (let c = 0; c < s; c++) {
+        const bitPos = r * s + c;
+        const hexChar = parseInt(QR_YANGCH.hex[bitPos >> 2], 16);
+        if ((hexChar >> (3 - (bitPos & 3))) & 1) {
+          ctx.fillRect(x + q + c * modulePx, y + q + r * modulePx, modulePx, modulePx);
+        }
+      }
+    }
+  }
+  function wrapText(ctx, text, maxWidth) {
+    const lines = []; let line = '';
+    for (const ch of String(text)) {
+      if (ctx.measureText(line + ch).width > maxWidth && line) { lines.push(line); line = ch; }
+      else line += ch;
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+  /* N1 内容层隐私:CP 昵称——由两人名字确定性派生,战报等分享图不再携带实名。
+   * 规则:复用 cleanName 清洗 → 剔"阿/小/老/大"昵称前缀 → 从后往前取首个可读字(CJK/假名/谚文/拉丁/数字,跳过 emoji 与符号)为各自核心字 → 拼成「你的核心字+TA核心字+" CP"」。
+   * 边界:任一侧无可读字(空名/纯 emoji/纯符号)或两侧核心字相同(同名) → 兜底「小剧场CP」,绝不抛错。 */
+  function cpNick(you, her) {
+    const readChar = ch => {
+      const cp = ch.codePointAt(0);
+      return (cp >= 0x30 && cp <= 0x39) || (cp >= 0x41 && cp <= 0x5A) || (cp >= 0x61 && cp <= 0x7A) // 数字/拉丁字母
+        || (cp >= 0xC0 && cp <= 0x24F)                                                              // 拉丁扩展(带调字母/拼音)
+        || (cp >= 0x3040 && cp <= 0x30FF) || (cp >= 0xAC00 && cp <= 0xD7AF)                         // 假名/谚文
+        || (cp >= 0x4E00 && cp <= 0x9FFF);                                                          // CJK 统一汉字
+    };
+    const core = name => {
+      const s = cleanName(name).replace(/^[阿小老大]+/, '');
+      let last = '';
+      for (const ch of s) if (readChar(ch)) last = ch; // for...of 按码点走,emoji 整体跳过不炸
+      return last;
+    };
+    const a = core(you), b = core(her);
+    if (!a || !b || a === b) return '小剧场CP';
+    return a + b + ' CP';
+  }
+  function makeReport() {
+    const p = profile();
+    const todayLog = logAll().filter(x => x.date === today());
+    if (!todayLog.length) { toast('先演一场，才有战报可生成。', true); return; }
+    const cv = document.createElement('canvas'); cv.width = 900; cv.height = 1200;
+    const ctx = cv.getContext('2d');
+    // N5 梗图化:高对比底 + 大字标题 + 表情符号大字 + 引用块 + 底部醒目域名条
+    const g = ctx.createLinearGradient(0, 0, 0, 1200);
+    g.addColorStop(0, '#2a1c4d'); g.addColorStop(1, '#17102a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 900, 1200);
+    ctx.strokeStyle = 'rgba(232,176,75,.5)'; ctx.lineWidth = 2; ctx.strokeRect(28, 28, 844, 1144);
+    const center = (t, y, font, color) => { ctx.font = font; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(t, 450, y); };
+    // 梗图式大标题
+    const mainCount = todayLog.length;
+    const cp = cpNick(p.you, p.her); // N1 隐私:出图用派生 CP 昵称,实名不上图
+    center('🎭 今晚开演 ' + mainCount + ' 场', 150, 'bold 60px "Microsoft YaHei", sans-serif', '#e8b04b');
+    center(cp + ' ｜ ' + today(), 205, '26px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    ctx.strokeStyle = 'rgba(232,176,75,.35)'; ctx.beginPath(); ctx.moveTo(120, 240); ctx.lineTo(780, 240); ctx.stroke();
+    // 大表情 + 戏码名(梗图视觉核心)
+    let y = 330;
+    todayLog.slice(0, 4).forEach(x => {
+      const c = D.CARDS.find(cc => cc.id === x.cardId);
+      const icon = x.cardId === 'daily:quest' ? '📜' : (c ? D.SUITS[c.suit].icon : '🎭');
+      const title = x.cardId === 'daily:quest' ? '今日剧本杀青' : (c ? c.title : '一场好戏');
+      center(icon, y + 60, '84px serif', '#f2ecff');
+      center(title, y + 130, 'bold 40px "Microsoft YaHei", sans-serif', '#f2ecff');
+      y += 170;
+    });
+    // N1 隐私:金句/夸夸原文不上图(仍存本地存折)——引用块改固定钩子
+    y = Math.max(y + 20, 950);
+    ctx.fillStyle = 'rgba(232,176,75,.08)';
+    ctx.fillRect(90, y - 40, 720, 110);
+    ctx.strokeStyle = '#e8b04b'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(90, y - 40); ctx.lineTo(90, y + 70); ctx.stroke();
+    ctx.font = 'bold 30px "Microsoft YaHei", sans-serif';
+    ctx.fillStyle = '#ffd9a0'; ctx.textAlign = 'left';
+    ctx.fillText('「TA 有句悄悄话等你来看 👀」', 115, y);
+    // 底部醒目域名条+真二维码(N5.1:扫码即玩,矩阵内嵌)
+    ctx.fillStyle = '#e8b04b'; ctx.fillRect(0, 1084, 900, 116);
+    drawQr(ctx, 40, 1092, 3, 8); // 25*3=75 模块 + 静区 → 白框 91px
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 26px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#241a42';
+    ctx.fillText('情侣小剧场 · 扫码即玩', 560, 1132);
+    ctx.font = 'bold 34px "Microsoft YaHei", sans-serif';
+    ctx.fillText('yangch.website', 560, 1174);
+    const url = cv.toDataURL('image/png');
+    const slot = $('#report-slot'); if (!slot) return;
+    slot.innerHTML = `<img class="report-img" alt="今晚战报" src="${url}">
+      <p class="hint">发到你们的聊天框,TA 的朋友看到域名就能玩。</p>`
+      + saveHintHtml('双人戏精战报-' + today() + '.png', url);
+    slot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    toast('📸 战报生成好了——长按图片就能保存或转发。');
+  }
+
+  /* ---------- 🪜 台阶 ---------- */
+  /* 远端事件(云中继 v4.2):TA 递来的台阶 → 真待接卡;TA 的接住 → 回流本地统计 */
+  function handleRemoteEvents(remote) {
+    let changed = false;
+    const my = jget('cd.repair', []);
+    remote.forEach(e => {
+      if (e.type === 'repair') {
+        const arr = jget('cd.remoteRepair', []);
+        if (!arr.some(x => x.id === e.id)) {
+          arr.push({ id: e.id, ts: e.ts, date: e.date || today(), text: e.payload.text, icon: e.payload.icon, by: e.by, acked: null });
+          jset('cd.remoteRepair', arr);
+          changed = true;
+          toast('🪜 有一个台阶递来了：<b>' + esc(e.payload.icon + ' ' + e.payload.text) + '</b>——去台阶页回应。');
+        }
+      } else if (e.type === 'repair_ack') {
+        const ref = e.payload && e.payload.ref;
+        const target = my.find(x => x.bid === ref && x.caught === null);
+        if (target) {
+          target.caught = true; target.caughtTs = Date.now(); jset('cd.repair', my);
+          changed = true;
+          toast('💛 台阶被接住了——TA 回应了你。这一下比一百句道理都值钱。');
+        }
+      } else if (e.type === 'praise') {
+        // v4.7 夸夸跨设备同步:按 id 去重(praiseSeen 上限 200,超限移最旧),视角互换后入账
+        const seen = jget('cd.praiseSeen', []);
+        if (!seen.includes(e.id)) {
+          const SWAP = { you: 'her', her: 'you' }; // 对端视角的 you/her 与本机相反
+          const arr = jget('cd.praise', []);
+          arr.unshift({ ts: e.ts, date: e.date || today(), from: SWAP[e.payload.from] || 'her', to: SWAP[e.payload.to] || 'you', text: e.payload.text });
+          jset('cd.praise', arr.slice(0, 100));
+          seen.push(e.id);
+          if (seen.length > 200) seen.shift();
+          jset('cd.praiseSeen', seen);
+          changed = true;
+          toast('💌 ' + esc(profile()[SWAP[e.payload.from] || 'her']) + ' 给你存了一句夸夸');
+        }
+      }
+    });
+    if (changed) {
+      checkAchievements(); renderLadder();
+      renderToday(); // v4.7 夸夸入账刷新收尾区计数
+      if (curTab === 'treasure') renderTreasure(); // 夸夸存折在百宝箱
+    }
+  }
+
+  function renderLadder() {
+    const p = profile(), st = deriveState();
+    const pending = jget('cd.repair', []).find(x => x.date === today() && x.caught === null);
+    const remotePendings = jget('cd.remoteRepair', []).filter(x => x.date === today() && x.acked === null);
+    const bound = !!(window.CloudSync && window.CloudSync.isBound());
+    const root = $('#view-ladder');
+    root.innerHTML = `
+      <h2 class="vt">🪜 台阶 <span class="count">大道理都懂，缺的是下得来的台阶</span></h2>
+      <div class="rulebox">递出去——把手机给 TA、喊 TA 来看、生成台阶卡，或${bound ? '（已绑定）直接递到 TA 手机上' : '（绑定后）直接递到 TA 手机上'}。<b>接不接都不追问，这是规则</b>。<br>
+      累计递出 <b>${st.repairSent}</b> 次 · 被接住 <b>${st.repairCaught}</b> 次。</div>
+
+      ${remotePendings.map(rp => `
+      <div class="card">
+        <h3>🪜 TA 递给你一个台阶</h3>
+        <div class="repair-pending">
+          <p class="rp-text">${esc(rp.icon)} <b>${esc(rp.text)}</b></p>
+          <div class="rp-btns">
+            <button class="btn rp-remote-catch" data-id="${esc(rp.id)}">💛 接住</button>
+            <button class="mini rp-remote-later" data-id="${esc(rp.id)}">⏳ 晚点说</button>
+          </div>
+        </div>
+        <p class="hint">「晚点说」也是一种回答——不伤人的拒绝方式。</p>
+      </div>`).join('')}
+
+      ${pending ? `
+      <div class="card">
+        <h3>🪜 台阶已递出，等 TA 回应</h3>
+        <div class="repair-pending">
+          <p class="rp-text">${pending.icon} <b>${esc(pending.text)}</b></p>
+          <p class="hint" style="border:none;margin:4px 0 0">把手机给 TA、喊 TA 来看，或发台阶卡${bound ? '——已绑定，TA 手机上会直接出现' : ''}。</p>
+        </div>
+        <p class="hint">下面记录 <b>TA 的回应</b>——TA 本人亲手点，或持机人代 TA 点（这是你们的日记，不是考勤）：</p>
+        <div class="rp-btns">
+          <button class="btn rp-catch" id="rp-catch">💛 TA 接住了</button>
+          <button class="mini" id="rp-later">⏳ TA 晚点说</button>
+        </div>
+        <p class="hint">「晚点说」也是一种回答——不伤人的拒绝方式，记录下来就好，不追问。</p>
+        <div class="draw-bar" style="justify-content:center"><button class="mini" id="step-card">📸 生成台阶卡（发给 TA）</button></div>
+        <div id="stepcard-slot"></div>
+      </div>` : `
+      <div class="card">
+        <h3>递一个台阶</h3>
+        <p class="hint">最难的第一句话，交给我们来说。点一个——绑定后直接到 TA 手机，没绑定就递手机或发台阶卡。</p>
+        <div class="draw-bar">${D.REPAIRS.map(r =>
+          `<button class="suit-btn rp-send" data-rp="${r.id}">${r.icon} ${r.text}</button>`).join('')}</div>
+      </div>`}`;
+    document.querySelectorAll('.rp-send').forEach(b => b.addEventListener('click', () => {
+      const rp = D.REPAIRS.find(x => x.id === b.dataset.rp);
+      if (!confirm('把「' + rp.text + '」递出去？接不接都不追问。')) return;
+      const arr = jget('cd.repair', []);
+      const bev = (window.CloudSync && window.CloudSync.isBound()) ? window.CloudSync.emit('repair', { text: rp.text, icon: rp.icon }) : null;
+      arr.push({ ts: Date.now(), date: today(), type: rp.id, icon: rp.icon, text: rp.text, caught: null, bid: bev ? bev.id : null });
+      jset('cd.repair', arr);
+      toast('🪜 台阶已递出' + (bev ? '——TA 手机上马上会看到。' : '——把手机给 TA，或生成台阶卡发给 TA。'));
+      renderLadder();
+    }));
+    document.querySelectorAll('.rp-remote-catch').forEach(b => b.addEventListener('click', () => {
+      const arr = jget('cd.remoteRepair', []);
+      const rp = arr.find(x => x.id === b.dataset.id);
+      if (!rp) return;
+      rp.acked = true; jset('cd.remoteRepair', arr);
+      if (window.CloudSync && window.CloudSync.isBound()) window.CloudSync.emit('repair_ack', { ref: rp.id });
+      toast('💛 接住了。这一下比一百句道理都值钱。');
+      renderLadder();
+    }));
+    document.querySelectorAll('.rp-remote-later').forEach(b => b.addEventListener('click', () => {
+      const arr = jget('cd.remoteRepair', []);
+      const rp = arr.find(x => x.id === b.dataset.id);
+      if (rp) { rp.acked = false; jset('cd.remoteRepair', arr); }
+      toast('⏳ 好的，晚点说——不追问。');
+      renderLadder();
+    }));
+    const rc = $('#rp-catch'); if (rc) rc.addEventListener('click', () => {
+      const arr = jget('cd.repair', []);
+      const pr = arr.find(x => x.date === today() && x.caught === null);
+      if (!pr) { toast('今天没有待回应的台阶。', true); return; }
+      pr.caught = true; pr.caughtTs = Date.now(); jset('cd.repair', arr);
+      toast('💛 台阶被接住了。这一下比一百句道理都值钱。');
+      checkAchievements(); renderLadder();
+    });
+    const rl = $('#rp-later'); if (rl) rl.addEventListener('click', () => {
+      const arr = jget('cd.repair', []);
+      const pr = arr.find(x => x.date === today() && x.caught === null);
+      if (pr) { pr.caught = false; jset('cd.repair', arr); }
+      toast('⏳ 好的，晚点说——不追问。'); renderLadder();
+    });
+    const sc = $('#step-card'); if (sc) sc.addEventListener('click', makeStepCard);
+  }
+
+  /* v4.4.1 修复:<a download>+dataURL 在微信 WebView 点击无反应、iOS Safari 不存相册。
+   * 微信/移动端一律主推"长按图片保存"(100% 可靠),下载按钮仅保留在桌面浏览器。
+   * v4.4.2:maxTouchPoints 兜底 iPad"请求桌面网站"模式(UA 无移动标识的触屏设备)。 */
+  function isMobileish() {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+      || (navigator.maxTouchPoints || 0) > 1;
+  }
+  function saveHintHtml(fileName, url) {
+    const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+    const longPress = '<p class="hint gold" style="font-size:14px">👆 <b>长按上面的图片</b> → 选「保存图片」/「发送给朋友」——微信里这样最稳。</p>';
+    if (isWeChat || isMobileish()) return longPress;
+    return longPress + `<div class="draw-bar" style="justify-content:center"><a class="btn dl-btn" download="${fileName}" href="${url}">⬇️ 保存到电脑</a></div>`;
+  }
+
+  /* ---------- 🪜 台阶卡（v4.1：给"拉不下脸走不到面前"的场景——生成图片微信直发，零后端） ---------- */
+  function makeStepCard() {
+    const pending = jget('cd.repair', []).find(x => x.date === today() && x.caught === null);
+    if (!pending) { toast('没有待接的台阶。', true); return; }
+    const cv = document.createElement('canvas'); cv.width = 750; cv.height = 1000;
+    const ctx = cv.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, 1000);
+    g.addColorStop(0, '#2a1c4d'); g.addColorStop(1, '#17102a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 750, 1000);
+    ctx.strokeStyle = 'rgba(232,176,75,.5)'; ctx.lineWidth = 2; ctx.strokeRect(24, 24, 702, 952);
+    const center = (t, y, font, color) => { ctx.font = font; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(t, 375, y); };
+    center('🪜 一个台阶', 140, 'bold 44px "Microsoft YaHei", sans-serif', '#e8b04b');
+    center(today(), 190, '22px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    center(pending.icon, 380, '120px "Microsoft YaHei", sans-serif', '#f2ecff');
+    center('「' + pending.text + '」', 500, 'bold 54px "Microsoft YaHei", sans-serif', '#f2ecff');
+    center('有人想和好，又拉不下脸——', 600, '26px "Microsoft YaHei", sans-serif', '#d8cfef');
+    center('这是 TA 递给你的台阶。', 644, '26px "Microsoft YaHei", sans-serif', '#d8cfef');
+    center('接不接，都不追问。', 730, 'bold 30px "Microsoft YaHei", sans-serif', '#ffd9a0');
+    center('接住它，或者晚点说，都可以。', 776, '24px "Microsoft YaHei", sans-serif', '#b3a6d6');
+    // 右下角小二维码(N5.1:收到卡的人扫码就能进)
+    drawQr(ctx, 618, 895, 2, 5); // 25*2=50 + 静区10 → 白框70,右缘 688<726 边框内
+    ctx.textAlign = 'left';
+    ctx.font = '18px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#b3a6d6';
+    ctx.fillText('双人戏精 · 一台手机的小剧场', 60, 940);
+    const url = cv.toDataURL('image/png');
+    const slot = $('#stepcard-slot'); if (!slot) return;
+    slot.innerHTML = `<img class="report-img" alt="台阶卡" src="${url}">
+      <p class="hint">把这张图发给 TA（微信直接发）——台阶就递到了。TA 回应后，在这台手机上代 TA 标记结果。</p>`
+      + saveHintHtml('台阶卡-' + today() + '.png', url);
+    slot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    toast('🪜 台阶卡生成好了——长按图片就能保存或直接发送。');
+  }
+
+  /* ---------- 🎁 百宝箱 ---------- */
+  function renderTreasure() {
+    $('#view-treasure').innerHTML = `
+      <h2 class="vt">🎁 百宝箱 <span class="count">没事想一起做点什么时，来翻</span></h2>
+      <div class="toc-row">
+        <button data-toc="things-slot">🗓 小事清单</button>
+        <button data-toc="cap-slot">⏳ 时间胶囊</button>
+        <button data-toc="pool-slot">🎴 卡池</button>
+        <button data-toc="log-slot">📜 记录</button>
+        <button data-toc="cloud-slot">🔗 同步</button>
+        <button data-toc="backup-slot">📦 备份</button>
+        <button data-toc="set-slot">⚙️ 设置</button>
+      </div>
+      <div id="streak-slot"></div>
+      <div id="things-slot"></div>
+      <div id="cap-slot"></div>
+      <div id="pool-slot"></div>
+      <div id="log-slot"></div>
+      <div id="cloud-slot"></div>
+      <div id="backup-slot"></div>
+      <div id="set-slot"></div>`;
+    document.querySelectorAll('.toc-row button').forEach(b => b.addEventListener('click', () => {
+      const el = document.getElementById(b.dataset.toc);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+    renderStreak();
+    renderThings();
+    if (window.DramaCapsules) window.DramaCapsules.render('#cap-slot', profile());
+    renderPool();
+    renderLog();
+    renderCloudCard();
+    renderBackupCard();
+    renderSettings();
+  }
+
+  function renderStreak() {
+    const st = deriveState();
+    const log = logAll();
+    const strip = Array.from({ length: 30 }, (_, i) => {
+      const key = daysAgo(29 - i);
+      const cls = log.some(x => x.date === key) ? 'dot done' : (st.restDays.has(key) ? 'dot rest' : 'dot');
+      return `<span class="${cls}" title="${key}"></span>`;
+    }).join('');
+    $('#streak-slot').innerHTML = `
+      <div class="card"><h3>🔥 我们的剧场 <span class="count">节拍连演 <b>${st.streak}</b> 场（${esc(CADENCE_LABEL[cadence()])}） ｜ 近 30 天开演 <b>${st.last30Done}</b> 天</span>
+      <div class="strip">${strip}</div></div>`;
+  }
+
+  function renderThings() {
+    const done = jget('cd.things', []);
+    const doneSet = new Set(done);
+    const pct = Math.round(done.length / D.SMALL_THINGS.length * 100);
+    $('#things-slot').innerHTML = `
+      <div class="card">
+      <h3>🗓 一起做的小事 <span class="count">${done.length}/${D.SMALL_THINGS.length} · ${pct}%</span></h3>
+      <p class="hint">不打卡不焦虑——想到就去，去了就点亮。全部点亮那天，记得截图存好。</p>
+      <div class="things-bar"><span style="width:${pct}%"></span></div>
+      <div class="things-grid">${D.SMALL_THINGS.map((t, i) => `
+        <button class="thing ${doneSet.has(i) ? 'did' : ''}" data-i="${i}">
+          <span class="tnum">${String(i + 1).padStart(2, '0')}</span> ${esc(t)}
+        </button>`).join('')}</div></div>`;
+    document.querySelectorAll('.thing').forEach(b => b.addEventListener('click', () => {
+      const i = +b.dataset.i;
+      const arr = jget('cd.things', []);
+      const pos = arr.indexOf(i);
+      if (pos >= 0) { arr.splice(pos, 1); b.classList.remove('did'); }
+      else { arr.push(i); b.classList.add('did');
+        if (arr.length === D.SMALL_THINGS.length) toast('🎉 全部点亮！你们把清单活成了真的。'); }
+      jset('cd.things', arr);
+      const pct2 = Math.round(arr.length / D.SMALL_THINGS.length * 100);
+      const bar = document.querySelector('.things-bar span'); if (bar) bar.style.width = pct2 + '%';
+      document.querySelector('#things-slot .count').textContent = arr.length + '/' + D.SMALL_THINGS.length + ' · ' + pct2 + '%';
+    }));
+  }
+
+  /* 卡池全集（浏览 + 演完标记） */
+  function cardHtml(c, drawnToday) {
+    const s = D.SUITS[c.suit];
+    const played = logAll().some(x => x.cardId === c.id && x.date === today());
+    return `<div class="dcard" style="--c:${s.color}; background: linear-gradient(140deg, ${s.color}1f 0%, var(--card2) 58%)">
+      <div class="dc-top"><span class="dc-suit" style="background:${s.color}">${s.icon} ${s.name}</span>
+        <span class="dc-meta">${drawnToday.includes(c.id) ? '🎭 今日已抽 ｜ ' : ''}${c.minutes} 分钟 ｜ ${{ any: '随地', home: '居家', out: '户外', road: '路上' }[c.where]}</span></div>
+      <h4>${esc(c.title)}</h4>
+      <p>${esc(c.text)}</p>
+      <button class="done-btn ${played ? 'did' : ''}" data-card="${c.id}">${played ? '✅ 今日已演' : '🎬 演完了'}</button>
+    </div>`;
+  }
+
+  function renderPool() {
+    const d = daily();
+    const f = jget('cd.deckFilter', { suit: '', minutes: 0, where: '' });
+    const drawnToday = d.drawn || [];
+    const remainOf = k => D.CARDS.filter(c => c.suit === k && !drawnToday.includes(c.id)).length;
+    let list = D.CARDS.slice();
+    if (f.suit) list = list.filter(c => c.suit === f.suit);
+    if (f.minutes) list = list.filter(c => c.minutes <= f.minutes);
+    if (f.where === 'remote') list = list.filter(c => c.where === 'any');
+    else if (f.where) list = list.filter(c => c.where === f.where || c.where === 'any');
+    let energyNote = '';
+    if (d.energy === 'low') {
+      list = list.filter(c => c.minutes <= 15);
+      energyNote = '<div class="warnbox">😼 今晚累模式：只显示 ≤15 分钟轻场。回今日剧场点「今晚累」可恢复。</div>';
+    }
+    $('#pool-slot').innerHTML = `
+      <div class="card">
+      <h3>🎴 戏码卡池全集 <span class="count">${D.CARDS.length} 张 ｜ 今日已抽 ${drawnToday.length}</span></h3>
+      <div class="rulebox">🎟️ 剧场规则：所有"对决"类戏码默认<b>无输赢</b>——只为了好笑，只收藏，不评分、不指导、不复盘。</div>
+      ${energyNote}
+      <div class="draw-bar">${Object.entries(D.SUITS).map(([k, s]) =>
+        `<button class="suit-btn ${f.suit === k ? 'on' : ''}" data-suit="${k}" style="border-color:${s.color}">${s.icon} ${s.name} <span class="remain">剩${remainOf(k)}</span></button>`).join('')}</div>
+      <div class="filter-row">
+        <select id="f-min"><option value="0">任意时长</option><option value="5">≤5 分钟</option><option value="15">≤15 分钟</option><option value="30">≤30 分钟</option></select>
+        <select id="f-where"><option value="">任何场景</option><option value="home">居家</option><option value="out">户外</option><option value="road">路上</option><option value="remote">🌍 异地/视频可做</option></select>
+        <button class="mini" id="f-clear">清空筛选</button>
+      </div>
+      <div class="dgrid" id="dgrid">${list.map(c => cardHtml(c, drawnToday)).join('') || '<p class="hint">没有匹配的卡，放宽筛选试试。</p>'}</div></div>`;
+    document.querySelectorAll('#pool-slot .suit-btn').forEach(b => b.addEventListener('click', () => {
+      f.suit = f.suit === b.dataset.suit ? '' : b.dataset.suit; jset('cd.deckFilter', f); renderPool();
+    }));
+    $('#f-min').value = String(f.minutes || 0); $('#f-min').addEventListener('change', e => { f.minutes = +e.target.value; jset('cd.deckFilter', f); renderPool(); });
+    $('#f-where').value = f.where || ''; $('#f-where').addEventListener('change', e => { f.where = e.target.value; jset('cd.deckFilter', f); renderPool(); });
+    $('#f-clear').addEventListener('click', () => { jset('cd.deckFilter', { suit: '', minutes: 0, where: '' }); renderPool(); });
+    bindDone();
+  }
+
+  function bindDone() {
+    document.querySelectorAll('.done-btn').forEach(b => b.addEventListener('click', () => {
+      if (b.classList.contains('did')) return;
+      const id = b.dataset.card;
+      const log = logAll();
+      log.unshift({ cardId: id, date: today(), ts: Date.now(), note: '' });
+      jset('cd.log', log);
+      b.classList.add('did'); b.textContent = '✅ 今日已演';
+      checkAchievements();
+      const st = deriveState();
+      toast('🎬 杀青！累计 ' + st.doneCount + ' 场' + (st.streak > 1 ? '，节拍连演 ' + st.streak + ' 场' : ''));
+      renderToday(); // 刷新今日收尾区（战报按钮/已演场数）
+    }));
+  }
+
+  /* 我们的记录（日志时间线 + 夸夸存折） */
+  function renderLog() {
+    const st = deriveState();
+    const log = logAll();
+    const praise = jget('cd.praise', []);
+    $('#log-slot').innerHTML = `
+      <div class="card">
+      <h3>🎬 剧场日志 <span class="count">累计 ${st.doneCount} 场</span></h3>
+      <p class="hint">每场演出可以留一句话。多年后翻回来，这就是你们的回忆银行。</p>
+      ${log.length ? `<div class="timeline">${log.slice(0, 50).map((x, i) => {
+        const c = D.CARDS.find(y => y.id === x.cardId);
+        const label = x.cardId === 'daily:quest' ? '📜 今日剧本杀青' : (c ? D.SUITS[c.suit].icon + ' ' + esc(c.title) : '（已下架卡）');
+        const suitColor = c ? D.SUITS[c.suit].color : 'var(--line)';
+        return `<div class="titem" style="border-left:4px solid ${suitColor}"><div class="tdate">${x.date} ｜ ${label}</div>
+          <input class="note" data-idx="${i}" placeholder="一句话感想（可选）" value="${esc(x.note || '')}" maxlength="50"></div>`;
+      }).join('')}</div>` : '<p class="hint">还没开演。回今日剧场抽第一张吧。</p>'}
+      <h3 style="margin-top:18px">💛 夸夸存折 <span class="count">本周 ${st.praiseWeek} 句 ｜ 累计 ${st.praiseCount} 句</span></h3>
+      ${praise.length ? `<div class="praise-list">${praise.slice(0, 20).map(x =>
+        `<div class="praise-item">${esc(profile()[x.from])} → ${esc(profile()[x.to])}（${x.date}）：${esc(x.text)}</div>`).join('')}</div>`
+        : '<p class="hint">存折还是空的——回今日剧场收尾区存第一句。</p>'}
+      </div>`;
+    const inpVal = {};
+    document.querySelectorAll('.note').forEach(inp => {
+      const i = +inp.dataset.idx;
+      const saveNote = idx => { const l = logAll(); if (l[idx]) { l[idx].note = inpVal[idx]; jset('cd.log', l); } };
+      let tm = null;
+      inp.addEventListener('input', () => { inpVal[i] = inp.value.trim(); clearTimeout(tm); tm = setTimeout(() => saveNote(i), 600); });
+      inp.addEventListener('blur', () => { if (inpVal[i] !== undefined) saveNote(i); });
+    });
+  }
+
+  /* 🔗 双人同步(云中继 v4.2):零注册房间码,首版仅台阶闭环 */
+  function renderCloudCard() {
+    const slot = $('#cloud-slot'); if (!slot) return;
+    if (!window.CloudSync) { slot.innerHTML = ''; return; }
+    const C = window.CloudSync;
+    if (C.isBound()) {
+      const st = C.state();
+      slot.innerHTML = `
+        <div class="card">
+        <h3>🔗 双人同步 <span class="count">已连接</span></h3>
+        <p class="hint">房间码 <b>${esc(st.code)}</b> ｜ 你递的台阶直接出现在 TA 手机上，TA 接住会自动记回你的统计。日志、免战牌、电量<b>永不同步</b>（情绪私有红线）。</p>
+        <p class="hint">如需加入或创建新的小剧场，请先解除连接——一个小剧场只属于两个人。</p>
+        <div class="draw-bar"><button class="mini danger" id="cloud-unbind">解除连接</button></div>
+        </div>`;
+      $('#cloud-unbind').addEventListener('click', () => {
+        if (!confirm('解除与 TA 的连接？TA 将不再收到你的台阶（云端房间自动废弃，码不重用）。')) return;
+        C.unbind(); C.stopAuto();
+        toast('🔗 已解除连接。');
+        renderCloudCard(); renderLadder();
+      });
+      return;
+    }
+    slot.innerHTML = `
+      <div class="card">
+      <h3>🔗 双人同步 <span class="count">台阶真正递到 TA 手机上</span></h3>
+      ${C.defaultApi() ? `
+      <p class="hint">零注册：创建小剧场拿到 6 位码，微信发给 TA——TA 在自己手机上输入，你们就连上了。此后台阶双向直达（TA 亲手接住，你的统计自动 +1）。不需要任何账号。</p>
+      <div class="draw-bar">
+        <button class="suit-btn" id="cloud-create">🎬 创建小剧场</button>
+        <input id="cloud-code" maxlength="6" placeholder="我有房间码" style="width:110px;text-transform:uppercase;background:var(--bg2);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:7px 10px;font-size:13.5px">
+        <button class="suit-btn" id="cloud-join">加入</button>
+      </div>
+      <div id="cloud-msg"></div>` : `
+      <p class="hint">🚧 同步服务即将开放——部署完成后这里就能创建小剧场。</p>`}
+      </div>`;
+    if (!C.defaultApi()) return;
+    $('#cloud-create').addEventListener('click', async () => {
+      try {
+        const st = await C.createRoom();
+        C.startAuto(30, handleRemoteEvents);
+        renderCloudCard(); // T8 注记:建房成功即时切「已连接」卡,不必切页签
+        const slot2 = document.querySelector('#cloud-slot .count');
+        if (slot2) slot2.textContent = '已连接 · 房间码 ' + esc(st.code);
+        renderLadder();
+      } catch (e) { $('#cloud-msg').innerHTML = '<p class="hint">❌ ' + esc(e.message) + '</p>'; }
+    });
+    $('#cloud-join').addEventListener('click', async () => {
+      const code = ($('#cloud-code').value || '').trim();
+      if (!code) { $('#cloud-msg').innerHTML = '<p class="hint">❌ 先填 TA 发你的 6 位房间码。</p>'; return; }
+      try {
+        await C.joinRoom(null, code);
+        C.startAuto(30, handleRemoteEvents);
+        toast('🔗 已连上 TA——台阶从此直达。');
+        renderCloudCard(); renderLadder();
+      } catch (e) { $('#cloud-msg').innerHTML = '<p class="hint">❌ ' + esc(e.message) + '</p>'; }
+    });
+  }
+
+  /* 🔗 双人同步(云中继 v4.2) 结束 */
+
+  /* ---------- 📦 备份与恢复(v4.3:数据主权在用户手里——零服务器、零账号,恢复码=全部数据+绑定钥匙) ---------- */
+  function renderBackupCard() {
+    const slot = $('#backup-slot'); if (!slot) return;
+    // v4.5 温和备份提醒:数据有分量(≥10条记录或≥3封信)且距上次备份>7天 → 标题旁提示一句。不弹窗不强制,导出即静默。
+    const lb = jget('cd.lastBackupTs', 0);
+    const heavy = logAll().length >= 10 || jget('cd.praise', []).length >= 10 || jget('cd.capsules', []).length >= 3;
+    const daysSince = lb ? Math.floor((Date.now() - lb) / 86400000) : null;
+    const nudge = heavy && (daysSince === null || daysSince >= 7)
+      ? '<p class="hint gold" style="margin:2px 0 8px">🕘 ' + (daysSince === null ? '还没备份过' : '上次备份是 ' + daysSince + ' 天前') + '——花 10 秒存一份恢复码，换机不丢回忆。</p>' : '';
+    slot.innerHTML = `
+      <div class="card">
+      <h3>📦 备份与恢复 <span class="count">数据只存本机——换设备前先备份</span></h3>
+      ${nudge}
+      <p class="hint">导出的恢复码包含<b>全部数据与绑定钥匙</b>——像保存密码一样把它存进微信收藏/备忘录，不要发给他人。</p>
+      <div class="draw-bar"><button class="suit-btn" id="bk-export">📤 导出恢复码</button></div>
+      <div id="bk-out"></div>
+      <p class="hint" style="margin-top:10px">换新手机/新浏览器？把恢复码粘贴到这里，一键回到原来的一切：</p>
+      <textarea id="bk-in" class="need-input" style="height:64px" placeholder="把恢复码粘贴到这里…"></textarea>
+      <div class="draw-bar"><button class="mini" id="bk-import">♻️ 恢复数据</button></div>
+      </div>`;
+    $('#bk-export').addEventListener('click', exportBackup);
+    $('#bk-import').addEventListener('click', importBackup);
+  }
+
+  function exportBackup() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('cd.')) data[k] = localStorage.getItem(k);
+    }
+    jset('cd.lastBackupTs', Date.now()); // v4.5:记录本次备份,提醒静默 7 天
+    const payload = { app: 'couple-drama', version: 1, exported: new Date().toISOString(), data };
+    const text = JSON.stringify(payload);
+    const out = $('#bk-out'); if (!out) return;
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    out.innerHTML = `
+      <textarea id="bk-text" class="need-input" style="height:90px" readonly>${esc(text)}</textarea>
+      <div class="draw-bar">
+        <button class="mini" id="bk-copy">📋 复制全部</button>
+        ${(() => { // v4.4.2:移动端/微信隐藏备份文件下载链接(同保存按钮坑)——主推复制到微信收藏/备忘录
+          const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+          if (isWeChat || isMobileish()) return '';
+          return '<a class="mini" style="text-decoration:none;display:inline-block" download="双人戏精备份-' + today() + '.json" href="' + url + '">⬇️ 下载备份文件</a>';
+        })()}
+      </div>
+      <p class="hint gold">✅ 恢复码已生成（约 ${Math.ceil(text.length / 1024)} KB）。${/MicroMessenger/i.test(navigator.userAgent) || isMobileish() ? '点「📋 复制全部」，粘贴到<b>微信收藏或备忘录</b>存好——这是你们全部回忆的钥匙。' : '存好它——这是你们全部回忆的钥匙。'}</p>`;
+    $('#bk-copy').addEventListener('click', () => {
+      const ta = $('#bk-text'); ta.select();
+      const done = () => toast('📋 已复制——存进微信收藏/备忘录，换机不丢。');
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, () => { document.execCommand('copy'); done(); });
+      else { document.execCommand('copy'); done(); }
+    });
+    out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function importBackup() {
+    const raw = ($('#bk-in').value || '').trim();
+    if (!raw) { toast('先把恢复码粘贴进来。', true); return; }
+    let payload = null;
+    try { payload = JSON.parse(raw); } catch (e) { toast('❌ 这不是有效的恢复码（格式不对）。', true); return; }
+    if (!payload || payload.app !== 'couple-drama' || payload.version !== 1 || !payload.data || typeof payload.data !== 'object') {
+      toast('❌ 恢复码内容不对——确认粘贴的是完整的一段？', true); return;
+    }
+    const keys = Object.keys(payload.data).filter(k => k.startsWith('cd.'));
+    if (!keys.length) { toast('❌ 恢复码里没有数据。', true); return; }
+    if (!confirm('将用这份备份覆盖当前设备的全部数据（现有记录会被替换）。确定恢复？')) return;
+    try {
+      const old = [];
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('cd.')) old.push(k); }
+      old.forEach(k => localStorage.removeItem(k));
+      keys.forEach(k => { try { localStorage.setItem(k, String(payload.data[k])); } catch (e) { /* 单键超限跳过 */ } });
+      toast('♻️ 恢复完成——欢迎回来。');
+      setTimeout(() => location.reload(), 900); // 全量重载:所有模块重新读存储,绑定自动恢复
+    } catch (e) { toast('❌ 恢复失败：' + esc(String(e.message || e)), true); }
+  }
+
+  /* 设置（名字/纪念日/节拍/清空） */
+  function renderSettings() {
+    const p = profile();
+    $('#set-slot').innerHTML = `
+      <div class="card">
+      <h3>⚙️ 设置</h3>
+      <div class="names" style="margin:8px 0">
+        <input id="set-you" value="${esc(p.you)}" maxlength="6" title="左边这位的名字">
+        <span class="amp">×</span>
+        <input id="set-her" value="${esc(p.her)}" maxlength="6" title="右边这位的名字">
+      </div>
+      <label class="hint" style="display:block;margin:10px 0 4px">在一起的日子</label><div id="set-since-box">${dateSelectsHtml(p.since || '')}</div>
+      <label class="hint" style="display:block;margin:10px 0 4px">下次见面</label><div id="set-next-box">${dateSelectsHtml(p.nextMeet || '', true)}</div>
+      <h3 style="margin-top:14px">🥁 演出节拍 <span class="count">${esc(CADENCE_LABEL[cadence()])}</span></h3>
+      <p class="hint">节奏由你定、随时改——它是对自己的承诺，不是欠游戏的债。提前演、隔一阵再演，都算数；<b>偶尔晚一两天，节拍也照样连上</b>。</p>
+      <div class="seg">
+        ${CADENCES.map(n => `<button class="seg-btn ${cadence() === n ? 'on' : ''}" data-cad="${n}">${n === 7 ? '每周一场' : n + ' 天一场'}</button>`).join('')}
+      </div>
+      <div class="cta-row"><button class="mini danger" id="reset-all">🗑️ 清空全部数据</button></div>
+      </div>`;
+    [$('#set-you'), $('#set-her')].forEach(inp => {
+      let tm = null;
+      const saveNames = () => { const pf = profile(); pf.you = cleanName($('#set-you').value) || '你'; pf.her = cleanName($('#set-her').value) || '她'; jset('cd.profile', pf); return pf; }; // P1-2:入口统一清洗
+      inp.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(saveNames, 400); });
+      inp.addEventListener('change', () => { clearTimeout(tm); saveNames(); renderToday(); toast('✅ 名字已保存。'); }); // renderToday 同步今日剧场标签
+    });
+    [ $('#set-since-box'), $('#set-next-box') ].forEach(box => {
+      if (!box) return;
+      bindDate3(box); // P1-7:年/月变更按当月天数重建"日"
+      box.addEventListener('change', () => {
+        const pf = profile();
+        pf.since = readDate3(document.getElementById('set-since-box'));
+        pf.nextMeet = readDate3(document.getElementById('set-next-box'));
+        jset('cd.profile', pf);
+        toast('📅 重要的日子已记下。'); renderToday();
+      });
+    });
+    document.querySelectorAll('#set-slot .seg-btn[data-cad]').forEach(b => b.addEventListener('click', () => {
+      jset('cd.cadence', +b.dataset.cad);
+      renderSettings(); renderStreak();
+      toast('🥁 节奏已设为「' + CADENCE_LABEL[+b.dataset.cad] + '」——随时可改，不设违约。');
+    }));
+    $('#reset-all').addEventListener('click', () => {
+      if (!confirm('确定清空全部演出记录、成就与设置？此操作只清本机数据，不可撤销。')) return;
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('cd.')) keys.push(k); }
+      keys.forEach(k => localStorage.removeItem(k));
+      toast('🧹 已清空，从头开演。');
+      renderAll(); switchTab('today');
+    });
+  }
+
+  function checkAchievements() {
+    const st = deriveState();
+    const got = E.evalAchievements(D.ACHIEVEMENTS, st);
+    const seen = jget('cd.achSeen', []);
+    got.filter(id => !seen.includes(id)).forEach(id => {
+      const a = D.ACHIEVEMENTS.find(x => x.id === id);
+      toast('🏆 解锁成就：' + a.icon + ' <b>' + a.name + '</b>');
+    });
+    jset('cd.achSeen', got);
+  }
+
+  function renderAll() { renderToday(); renderLadder(); renderTreasure(); }
+
+  const RENDERERS = { today: renderToday, ladder: renderLadder, treasure: renderTreasure };
+
+  /* ---------- N8 快速隐藏(时间盒半天):一键把整页换成中性"随手记"白底笔记,防旁人偷看 ---------- */
+  let qhBackup = null;            // 原 body.innerHTML 备份(仅内存态——刷新即还原,天然逃生门)
+  let qhClicks = 0, qhClickT = null;
+  function memoPageHtml() {
+    return `<div style="min-height:100vh;background:#fff;color:#333;font-family:'Microsoft YaHei','PingFang SC',system-ui,sans-serif;box-sizing:border-box;padding:46px 20px 64px;">
+      <div style="max-width:680px;margin:0 auto;">
+        <h2 style="font-size:16px;font-weight:600;margin:0 0 12px;">随手记</h2>
+        <div style="height:1px;background:#e8e8e8;margin-bottom:16px;"></div>
+        <div contenteditable="true" spellcheck="false" style="min-height:62vh;font-size:14px;line-height:1.9;outline:none;"></div>
+      </div>
+      <div id="qh-dot" style="position:fixed;left:0;right:0;bottom:4px;text-align:center;font-size:13px;color:#f5f5f5;user-select:none;">·</div>
+    </div>`;
+  }
+  function quickHide() {
+    if (qhBackup) return; // 已隐藏时幂等,避免把备忘录页当原页备份
+    qhBackup = document.body.innerHTML;
+    clearTimeout(toastTimer);
+    if (window.CloudSync && window.CloudSync.stopAuto) { try { window.CloudSync.stopAuto(); } catch (e) { /* 隐藏期间不再轮询,防远端事件往备忘录页上渲染/弹 toast */ } }
+    document.body.innerHTML = memoPageHtml();
+    const dot = document.getElementById('qh-dot');
+    if (dot) dot.addEventListener('click', () => {
+      clearTimeout(qhClickT);
+      if (++qhClicks >= 5) { quickRestore(); return; }
+      qhClickT = setTimeout(() => { qhClicks = 0; }, 1500); // 1.5s 内连点才累计,松了重新数
+    });
+  }
+  function quickRestore() {
+    qhClicks = 0; clearTimeout(qhClickT);
+    if (qhBackup) document.body.innerHTML = qhBackup; // 先写回备份
+    qhBackup = null;
+    location.reload(); // 再整页重载:所有渲染器/事件监听从入口完整重建,比手动重挂监听可靠
+  }
+  window.quickHide = quickHide;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('nav.tabs button[data-tab]').forEach(b =>
+      b.addEventListener('click', () => switchTab(b.dataset.tab)));
+    const qhBtn = document.getElementById('qh-btn');
+    if (qhBtn) qhBtn.addEventListener('click', quickHide); // N8 入口一:nav 末尾"−"按钮
+    let escLast = 0; // N8 入口二:Escape 连按两次(800ms 内)
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      const now = Date.now();
+      if (now - escLast < 800) { escLast = 0; quickHide(); } else escLast = now;
+    });
+    ['today', 'ladder', 'treasure'].forEach(name => {
+      try { RENDERERS[name](); } catch (e) { console.error(e); toast('⚠️ ' + name + ' 页渲染出错：' + esc(e.message), true); }
+    });
+    try { checkAchievements(); } catch (e) { console.error(e); }
+    if (window.CloudSync && window.CloudSync.isBound()) window.CloudSync.startAuto(30, handleRemoteEvents); // v4.2 绑定后自动拉远端台阶
+    if (!maybeJoinFromHash() && !jget('cd.onboarded', false)) showOnboarding(); // v4.6:扫码入座优先,否则三幕式引导
+    // v4.5 跨午夜检测:页面开着过零点/手机切回前台时自动刷新当日数据(QA 遗留项)
+    let lastDay = today();
+    const dayFlip = () => { if (qhBackup) return; if (today() !== lastDay) { lastDay = today(); renderAll(); switchTab(curTab); toast('🌅 新的一天——场次和免战牌已刷新。'); } }; // N8:隐藏期间视图已换,跳过重渲染(恢复走 reload)
+    setInterval(dayFlip, 60000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) dayFlip(); });
+    switchTab('today');
+  });
+})();
+
+</script>
 </body>
 </html>

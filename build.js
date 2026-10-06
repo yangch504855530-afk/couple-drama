@@ -61,18 +61,14 @@ const out = path.join(root, 'dist', 'couple-drama.html');
 fs.writeFileSync(out, html);
 console.log('BUILT:', out, (html.length / 1024).toFixed(1) + ' KB');
 
-/* v4.4.2:自动同步 cloud/site(Worker assets 本体)——杜绝手工 cp 漂移。
- * 只复制在役文件:binding.js/github-sync.js 已下架(index.html 不加载),不进 site。 */
+/* v4.4.2:自动同步 cloud/site(Worker assets 本体)。
+ * v4.8.1 修复(T1 实测抓出):site/index.html 必须用**构建产物**(含 DRAMA_CARDS 注入的自包含 HTML)——
+ * 原先复制源 index.html 导致线上只有 32 张兜底卡。js/css 已全部内联,目录不再需要。 */
 const siteDir = path.join(root, 'cloud', 'site');
-fs.mkdirSync(path.join(siteDir, 'css'), { recursive: true });
-fs.mkdirSync(path.join(siteDir, 'js'), { recursive: true });
-fs.copyFileSync(path.join(root, 'index.html'), path.join(siteDir, 'index.html'));
-fs.copyFileSync(path.join(root, 'css', 'style.css'), path.join(siteDir, 'css', 'style.css'));
-for (const f of ['app.js', 'capsules.js', 'cloud-sync.js', 'data.js', 'engine.js']) {
-  fs.copyFileSync(path.join(root, 'js', f), path.join(siteDir, 'js', f));
+fs.mkdirSync(siteDir, { recursive: true });
+fs.writeFileSync(path.join(siteDir, 'index.html'), html); // 与 dist 同源:96 卡注入+全内联
+for (const stale of ['css', 'js']) {
+  const p = path.join(siteDir, stale);
+  if (fs.existsSync(p)) fs.rmSync(p, { recursive: true, force: true });
 }
-for (const dead of ['binding.js', 'github-sync.js']) { // 清理历史残留的死文件
-  const p = path.join(siteDir, 'js', dead);
-  if (fs.existsSync(p)) fs.rmSync(p);
-}
-console.log('cloud/site synced ✅ (5 js + css + index;死文件已剔除)');
+console.log('cloud/site synced ✅ (index.html=自包含构建产物 ' + (html.length / 1024).toFixed(1) + ' KB)');
